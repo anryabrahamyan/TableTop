@@ -149,8 +149,8 @@
                         {% endif %}
                     {% else %}
                         <!-- Participant Actions -->
-                        {% set user_in_session = user.id in [p.user_id for p in session.participants] %}
-                        {% if user_in_session %}
+                        {% set participant_user_ids = session.participants | map(attribute='user_id') | list %}
+                        {% if user and user.id in participant_user_ids %}
                             <form method="POST" action="{{ url_for('leave_session', session_id=session.id) }}">
                                 <input type="hidden" name="user_id" value="{{ user_id }}">
                                 <button type="submit" class="btn btn-danger" style="width: 100%; text-align: center;">
