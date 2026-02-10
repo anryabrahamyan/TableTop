@@ -98,7 +98,6 @@ def index():
         return redirect(url_for('dashboard', user_id=user_id))
     return redirect(url_for('login'))
 
-
 @app.route('/dashboard')
 def dashboard():
     """Main dashboard showing cafe floor status."""
@@ -111,6 +110,16 @@ def dashboard():
         recruiting_sessions = SessionLobby.query.filter_by(
             status=SessionStatus.RECRUITING.value
         ).all()
+        
+        # Provide a harmless example row if there are no sessions to show
+        example_sessions = []
+        if not recruiting_sessions and not active_sessions:
+            example_sessions = [{
+                'game_name': 'Example: Catan',
+                'slots_remaining': 3,
+                'slots_total': 4,
+                'status': SessionStatus.RECRUITING.value
+            }]
         
         # Get stats for the current user
         user_stats = None
@@ -126,12 +135,13 @@ def dashboard():
             'dashboard.html',
             active=active_sessions,
             recruiting=recruiting_sessions,
+            example_sessions=example_sessions,
             user=user,
             user_stats=user_stats
         )
     except Exception as e:
         flash(f'Error loading dashboard: {str(e)}', 'error')
-        return render_template('dashboard.html', active=[], recruiting=[], user=user)
+        return render_template('dashboard.html', active=[], recruiting=[], example_sessions=[], user=user)
 
 
 @app.route('/library')
