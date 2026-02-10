@@ -3,7 +3,6 @@
 <div class="container">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
         <h2 style="color: #2c3e50; margin: 0;">📚 Digital Library Inventory</h2>
-        <button class="btn btn-primary">+ Add New Game</button>
     </div>
 
     {% if games %}
@@ -23,7 +22,9 @@
                     
                     <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
                         <a href="{{ url_for('game_details', game_id=game.id) }}" class="btn" style="flex: 1; text-align: center;">View Details</a>
-                        <a href="{{ url_for('toggle_game', game_id=game.id) }}" class="btn btn-danger" style="flex: 1; text-align: center;">Toggle Status</a>
+                        <form method="POST" action="{{ url_for('toggle_game', game_id=game.id) }}" style="flex: 1;">
+                            <button type="submit" class="btn btn-danger" style="width: 100%;">Toggle Status</button>
+                        </form>
                     </div>
                 </div>
             </div>

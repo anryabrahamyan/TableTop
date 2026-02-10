@@ -10,12 +10,12 @@
                 {% for session in recruiting %}
                 <div class="game-card">
                     <div style="background: #3498db; color: white; padding: 1rem; text-align: center;">
-                        <h4 style="margin: 0; color: white;">{{ session.game_name }}</h4>
+                        <h4 style="margin: 0; color: white;">{{ session.game.title if session.game else 'Unknown Game' }}</h4>
                     </div>
                     <div class="game-card-content">
                         <p><strong>Players Needed:</strong> {{ session.slots_remaining }}/{{ session.slots_total }}</p>
                         <p><strong>Status:</strong> <span class="status-badge available">RECRUITING</span></p>
-                        <button class="btn btn-success" style="margin-top: auto;">✓ Confirm Check-in</button>
+                        <a href="{{ url_for('view_session', session_id=session.id, user_id=request.args.get('user_id')) }}" class="btn btn-success" style="margin-top: auto; text-decoration: none;">✓ Join Session</a>
                     </div>
                 </div>
                 {% endfor %}
@@ -30,7 +30,7 @@
                     <div class="game-card-content">
                         <p><strong>Players Needed:</strong> {{ session.slots_remaining }}/{{ session.slots_total }}</p>
                         <p><strong>Status:</strong> <span class="status-badge">RECRUITING</span></p>
-                        <small style="color:#7f8c8d;">(Example data shown)</small>
+                        <small style="color:#7f8c8d;">(Example data shown - create a game to get started!)</small>
                     </div>
                 </div>
                 {% endfor %}
@@ -47,10 +47,10 @@
                 {% for session in active %}
                 <div class="game-card">
                     <div style="background: #27ae60; color: white; padding: 1rem; text-align: center;">
-                        <h4 style="margin: 0; color: white;">Table #{{ session.table_number }}</h4>
+                        <h4 style="margin: 0; color: white;">Table #{{ session.table_number or 'N/A' }}</h4>
                     </div>
                     <div class="game-card-content">
-                        <p><strong>Game:</strong> {{ session.game_name }}</p>
+                        <p><strong>Game:</strong> {{ session.game.title if session.game else 'Unknown Game' }}</p>
                         <p><strong>Players:</strong> {{ session.slots_filled }}/{{ session.slots_total }}</p>
                         <span class="status-badge available">In Progress</span>
                     </div>
