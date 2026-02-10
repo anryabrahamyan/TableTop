@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TableTop | Internal Operator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@600&family=Metamorphous&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <h1>TABLETOP OPERATOR</h1>
+        <p>Cafe ID: #001 - Yerevan Central</p>
+    </header>
+
+    <nav class="nav-bar">
+        <a href="{{ url_for('dashboard') }}">🏰 Floor Overview</a>
+        <a href="{{ url_for('library') }}">📚 Game Library</a>
+        <a href="#">💰 Credit Ledger</a>
+        <a href="#">👤 User Search</a>
+    </nav>
+
+    <main style="padding: 20px;">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer style="text-align: center; padding: 20px; color: #795548;">
+        &copy; 2024 TableTop System | Connect. Discover. Play.
+    </footer>
+</body>
+</html>

@@ -1,0 +1,61 @@
+:root {
+    --wood-dark: #3e2723;
+    --parchment: #f5f5dc;
+    --meeple-blue: #1976d2;
+    --forest-green: #2e7d32;
+    --accent-gold: #ffc107;
+}
+
+body {
+    background-color: var(--parchment);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--wood-dark);
+    margin: 0;
+}
+
+header {
+    background-color: var(--wood-dark);
+    color: white;
+    padding: 1rem;
+    text-align: center;
+    border-bottom: 5px solid var(--accent-gold);
+}
+
+.nav-bar {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    background: #5d4037;
+    padding: 10px;
+}
+
+.nav-bar a {
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+/* Card design mimicking board game components */
+.game-card {
+    background: white;
+    border: 2px solid var(--wood-dark);
+    border-radius: 8px;
+    padding: 15px;
+    margin: 10px;
+    box-shadow: 4px 4px 0px var(--wood-dark);
+    transition: transform 0.2s;
+}
+
+.game-card:hover {
+    transform: translateY(-5px);
+}
+
+.status-badge {
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: white;
+}
+
+.available { background-color: var(--forest-green); }
+.checked-out { background-color: #d32f2f; }

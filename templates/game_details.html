@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="game-detail-container" style="display: flex; gap: 40px; background: white; padding: 30px; border: 2px solid var(--wood-dark);">
+    
+    <div style="flex: 1;">
+        <img src="{{ game.image_url }}" style="width: 100%; border-radius: 8px; border: 1px solid #ddd;">
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px;">
+            {% for img in game.full_data.gallery[:4] %}
+            <img src="{{ img }}" style="width: 100%; height: 60px; object-fit: cover; border-radius: 4px; cursor: pointer;">
+            {% endfor %}
+        </div>
+    </div>
+
+    <div style="flex: 1.5;">
+        <h1 style="font-family: 'Grenze Gotisch', serif; color: var(--wood-dark);">{{ game.title }}</h1>
+        <p class="price" style="font-size: 1.5rem; color: var(--forest-green); font-weight: bold;">{{ game.price }}</p>
+        
+        <div style="background: var(--parchment); padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h3>📦 Package Contents</h3>
+            <p style="white-space: pre-line; font-size: 0.9rem;">{{ game.full_data.package }}</p>
+        </div>
+
+        <h3>📜 Description</h3>
+        <p style="line-height: 1.6;">{{ game.full_data.description[:500] }}...</p>
+        
+        <div style="margin-top: 30px;">
+            <button class="btn" style="background: var(--meeple-blue); color: white; padding: 15px 30px;">Start LFG Session</button>
+            <a href="/library" class="btn" style="text-decoration: none; color: var(--wood-dark); border: 1px solid var(--wood-dark); margin-left: 10px;">Back to Library</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

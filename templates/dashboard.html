@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <h2>Cafe Floor Overview</h2>
+    
+    <div class="section">
+        <h3>📢 Recruiting Lobbies (Waitlist)</h3>
+        <div class="lobby-grid">
+            {% for session in recruiting %}
+            <div class="game-card">
+                <h4>{{ session.game_name }}</h4>
+                <p>Players Needed: {{ session.slots_remaining }}</p>
+                <button class="btn">Confirm Check-in</button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>🎲 Active Tables</h3>
+        <div class="lobby-grid">
+            {% for session in active %}
+            <div class="game-card">
+                <h4>Table #{{ session.table_number }}</h4>
+                <p>Game: {{ session.game_name }}</p>
+                <span class="status-badge available">In Progress</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
