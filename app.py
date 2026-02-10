@@ -37,4 +37,4 @@ def game_details(game_id):
     return render_template('game_details.html', game=game)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True,host='0.0.0.0', port=5000)
