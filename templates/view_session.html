@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container" style="max-width: 900px;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h2 style="color: #2c3e50; margin: 0;">🎲 {{ session.game.title }}</h2>
+            <p style="color: #7f8c8d; margin: 0.5rem 0 0 0;">Session #{{ session.id }} • {{ session.status }}</p>
+        </div>
+        <a href="{{ url_for('dashboard', user_id=current_user.id) }}" class="btn btn-primary">← Dashboard</a>
+    </div>
+
+    <!-- Main Session Info -->
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+        <!-- Left: Session Details -->
+        <div>
+            <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); margin-bottom: 1.5rem;">
+                <h3 style="color: #2c3e50; margin-top: 0;">📋 Session Details</h3>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                    <div>
+                        <p style="color: #7f8c8d; font-size: 0.85rem; margin: 0;">Host</p>
+                        <p style="color: #2c3e50; font-weight: 600; margin: 0.25rem 0 0 0;">
+                            <a href="{{ url_for('profile', user_id=session.host.id) }}" style="color: #3498db; text-decoration: none;">
+                                {{ session.host.username }}
+                            </a>
+                        </p>
+                    </div>
+                    <div>
+                        <p style="color: #7f8c8d; font-size: 0.85rem; margin: 0;">Status</p>
+                        <p style="color: #2c3e50; font-weight: 600; margin: 0.25rem 0 0 0;">
+                            <span style="display: inline-block; padding: 0.25rem 0.75rem; border-radius: 20px; background: 
+                                {% if session.status == 'RECRUITING' %}#e8f4ff
+                                {% elif session.status == 'ACTIVE' %}#e8ffe8
+                                {% else %}#ffe8e8
+                                {% endif %};
+                                color: 
+                                {% if session.status == 'RECRUITING' %}#3498db
+                                {% elif session.status == 'ACTIVE' %}#27ae60
+                                {% else %}#e74c3c
+                                {% endif %};">
+                                {{ session.status }}
+                            </span>
+                        </p>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <p style="color: #7f8c8d; font-size: 0.85rem; margin: 0;">Created</p>
+                        <p style="color: #2c3e50; margin: 0.25rem 0 0 0; font-size: 0.9rem;">
+                            {{ session.created_at.strftime('%b %d, %H:%M') }}
+                        </p>
+                    </div>
+                    <div>
+                        <p style="color: #7f8c8d; font-size: 0.85rem; margin: 0;">Game Image</p>
+                        <img src="{{ session.game.image_url }}" alt="{{ session.game.title }}" 
+                             style="width: 100%; height: auto; border-radius: 8px; margin-top: 0.5rem; max-height: 150px; object-fit: cover;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Participants -->
+            <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+                <h3 style="color: #2c3e50; margin-top: 0;">👥 Participants ({{ session.slots_filled }}/{{ session.slots_total }})</h3>
+                
+                <div style="list-style: none; padding: 0; margin: 0;">
+                    {% for participant in session.participants %}
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border-bottom: 1px solid #ecf0f1;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                {% if participant.user.id == session.host_id %}
+                                    <span style="font-size: 1.2rem;">👑</span>
+                                {% else %}
+                                    <span style="font-size: 1.2rem;">🎮</span>
+                                {% endif %}
+                                <div>
+                                    <a href="{{ url_for('profile', user_id=participant.user.id) }}" style="color: #2c3e50; text-decoration: none; font-weight: 500;">
+                                        {{ participant.user.username }}
+                                    </a>
+                                    <p style="color: #7f8c8d; font-size: 0.85rem; margin: 0;">
+                                        Joined {{ participant.joined_at.strftime('%b %d') }}
+                                    </p>
+                                </div>
+                            </div>
+                            <p style="color: #7f8c8d; font-size: 0.9rem; margin: 0;">
+                                💰 {{ participant.user.credit_balance }}
+                            </p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Actions -->
+        <div>
+            <!-- Player Count Card -->
+            <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); margin-bottom: 1.5rem; text-align: center; border-top: 4px solid #3498db;">
+                <h2 style="color: #3498db; margin: 0 0 0.5rem 0; font-size: 2.5rem;">{{ session.slots_filled }}/{{ session.slots_total }}</h2>
+                <p style="color: #7f8c8d; margin: 0;">Players</p>
+                {% if session.slots_remaining > 0 %}
+                    <p style="color: #27ae60; font-size: 0.9rem; margin: 0.5rem 0 0 0;">{{ session.slots_remaining }} slots available</p>
+                {% else %}
+                    <p style="color: #e74c3c; font-size: 0.9rem; margin: 0.5rem 0 0 0;">Session is full</p>
+                {% endif %}
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+                <h3 style="color: #2c3e50; margin-top: 0; font-size: 1rem;">Actions</h3>
+
+                {% if current_user %}
+                    {% if current_user.id == session.host_id %}
+                        <!-- Host Actions -->
+                        {% if session.status == 'RECRUITING' %}
+                            <form method="POST" action="{{ url_for('start_session', session_id=session.id, user_id=current_user.id) }}" style="margin-bottom: 0.75rem;">
+                                <button type="submit" class="btn btn-success" style="width: 100%; text-align: center;">
+                                    ▶️ Start Session
+                                </button>
+                            </form>
+                        {% endif %}
+
+                        {% if session.status == 'ACTIVE' %}
+                            <form method="POST" action="{{ url_for('complete_session', session_id=session.id, user_id=current_user.id) }}" style="margin-bottom: 0.75rem;">
+                                <button type="submit" class="btn btn-success" style="width: 100%; text-align: center;">
+                                    ✓ Complete Session
+                                </button>
+                            </form>
+                        {% endif %}
+
+                        {% if session.status in ['RECRUITING', 'ACTIVE'] %}
+                            <form method="POST" action="{{ url_for('cancel_session', session_id=session.id, user_id=current_user.id) }}">
+                                <button type="submit" class="btn btn-danger" style="width: 100%; text-align: center;">
+                                    ✗ Cancel Session
+                                </button>
+                            </form>
+                        {% endif %}
+                    {% else %}
+                        <!-- Participant Actions -->
+                        {% if current_user in [p.user for p in session.participants] %}
+                            <form method="POST" action="{{ url_for('leave_session', session_id=session.id, user_id=current_user.id) }}">
+                                <button type="submit" class="btn btn-danger" style="width: 100%; text-align: center;">
+                                    👋 Leave Session
+                                </button>
+                            </form>
+                        {% elif session.status == 'RECRUITING' and not session.is_full %}
+                            <form method="POST" action="{{ url_for('join_session', session_id=session.id, user_id=current_user.id) }}">
+                                <button type="submit" class="btn btn-primary" style="width: 100%; text-align: center;">
+                                    🎮 Join Session
+                                </button>
+                            </form>
+                        {% else %}
+                            <p style="color: #7f8c8d; text-align: center; margin: 0;">Cannot join this session</p>
+                        {% endif %}
+                    {% endif %}
+                {% else %}
+                    <p style="color: #7f8c8d; text-align: center; margin: 0;">
+                        <a href="{{ url_for('login') }}" style="color: #3498db;">Login to join</a>
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div style="padding: 1rem; border-radius: 8px; background: {% if category == 'error' %}#ffe0e0{% else %}#e0ffe0{% endif %}; color: {% if category == 'error' %}#c33{% else %}#33c33{% endif %};">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
+{% endblock %}
