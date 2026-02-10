@@ -1,32 +1,50 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container">
-    <h2>Cafe Floor Overview</h2>
+    <h2 style="color: #2c3e50; margin-bottom: 2rem;">🏰 Cafe Floor Overview</h2>
     
     <div class="section">
-        <h3>📢 Recruiting Lobbies (Waitlist)</h3>
-        <div class="lobby-grid">
-            {% for session in recruiting %}
-            <div class="game-card">
-                <h4>{{ session.game_name }}</h4>
-                <p>Players Needed: {{ session.slots_remaining }}</p>
-                <button class="btn">Confirm Check-in</button>
+        <h3>📢 Recruiting Lobbies</h3>
+        {% if recruiting %}
+            <div class="lobby-grid">
+                {% for session in recruiting %}
+                <div class="game-card">
+                    <div style="background: #3498db; color: white; padding: 1rem; text-align: center;">
+                        <h4 style="margin: 0; color: white;">{{ session.game_name }}</h4>
+                    </div>
+                    <div class="game-card-content">
+                        <p><strong>Players Needed:</strong> {{ session.slots_remaining }}/{{ session.slots_total }}</p>
+                        <p><strong>Status:</strong> <span class="status-badge available">RECRUITING</span></p>
+                        <button class="btn btn-success" style="margin-top: auto;">✓ Confirm Check-in</button>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
-        </div>
+        {% else %}
+            <p style="color: #7f8c8d; padding: 2rem; text-align: center;">No recruiting lobbies at the moment.</p>
+        {% endif %}
     </div>
 
     <div class="section">
         <h3>🎲 Active Tables</h3>
-        <div class="lobby-grid">
-            {% for session in active %}
-            <div class="game-card">
-                <h4>Table #{{ session.table_number }}</h4>
-                <p>Game: {{ session.game_name }}</p>
-                <span class="status-badge available">In Progress</span>
+        {% if active %}
+            <div class="lobby-grid">
+                {% for session in active %}
+                <div class="game-card">
+                    <div style="background: #27ae60; color: white; padding: 1rem; text-align: center;">
+                        <h4 style="margin: 0; color: white;">Table #{{ session.table_number }}</h4>
+                    </div>
+                    <div class="game-card-content">
+                        <p><strong>Game:</strong> {{ session.game_name }}</p>
+                        <p><strong>Players:</strong> {{ session.slots_filled }}/{{ session.slots_total }}</p>
+                        <span class="status-badge available">In Progress</span>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
-        </div>
+        {% else %}
+            <p style="color: #7f8c8d; padding: 2rem; text-align: center;">No active tables right now.</p>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

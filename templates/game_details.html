@@ -1,31 +1,47 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="game-detail-container" style="display: flex; gap: 40px; background: white; padding: 30px; border: 2px solid var(--wood-dark);">
-    
-    <div style="flex: 1;">
-        <img src="{{ game.image_url }}" style="width: 100%; border-radius: 8px; border: 1px solid #ddd;">
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px;">
+<div class="game-detail-container">
+    <div>
+        <img src="{{ game.image_url }}" alt="{{ game.title }}" onerror="this.src='https://via.placeholder.com/400x400?text=No+Image'" style="width: 100%; border-radius: 12px;">
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-top: 1.5rem;">
             {% for img in game.full_data.gallery[:4] %}
-            <img src="{{ img }}" style="width: 100%; height: 60px; object-fit: cover; border-radius: 4px; cursor: pointer;">
+            <img src="{{ img }}" alt="Gallery image" style="width: 100%; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
             {% endfor %}
         </div>
     </div>
 
-    <div style="flex: 1.5;">
-        <h1 style="font-family: 'Grenze Gotisch', serif; color: var(--wood-dark);">{{ game.title }}</h1>
-        <p class="price" style="font-size: 1.5rem; color: var(--forest-green); font-weight: bold;">{{ game.price }}</p>
+    <div>
+        <h1>{{ game.title }}</h1>
+        <p class="price">{{ game.price }}</p>
         
-        <div style="background: var(--parchment); padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <h3>📦 Package Contents</h3>
-            <p style="white-space: pre-line; font-size: 0.9rem;">{{ game.full_data.package }}</p>
+        {% if game.full_data.details %}
+        <div class="detail-section">
+            <h3>📋 Game Details</h3>
+            <ul style="list-style: none;">
+                {% for key, value in game.full_data.details.items() %}
+                <li style="padding: 0.5rem 0;"><strong>{{ key }}:</strong> {{ value }}</li>
+                {% endfor %}
+            </ul>
         </div>
+        {% endif %}
 
-        <h3>📜 Description</h3>
-        <p style="line-height: 1.6;">{{ game.full_data.description[:500] }}...</p>
+        {% if game.full_data.package %}
+        <div class="detail-section">
+            <h3>📦 Package Contents</h3>
+            <p style="white-space: pre-wrap; font-size: 0.95rem;">{{ game.full_data.package }}</p>
+        </div>
+        {% endif %}
+
+        {% if game.full_data.description %}
+        <div class="detail-section">
+            <h3>📜 Description</h3>
+            <p style="line-height: 1.8;">{{ game.full_data.description[:800] }}{% if game.full_data.description|length > 800 %}...{% endif %}</p>
+        </div>
+        {% endif %}
         
-        <div style="margin-top: 30px;">
-            <button class="btn" style="background: var(--meeple-blue); color: white; padding: 15px 30px;">Start LFG Session</button>
-            <a href="/library" class="btn" style="text-decoration: none; color: var(--wood-dark); border: 1px solid var(--wood-dark); margin-left: 10px;">Back to Library</a>
+        <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+            <button class="btn btn-success" style="flex: 1; padding: 1rem;">🎮 Start LFG Session</button>
+            <a href="{{ url_for('library') }}" class="btn" style="flex: 1; padding: 1rem; text-align: center;">← Back to Library</a>
         </div>
     </div>
 </div>

@@ -1,32 +1,36 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h2>Digital Library Inventory</h2>
-        <button class="btn" style="background: var(--meeple-blue); color: white;">+ Add New Game</button>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2 style="color: #2c3e50; margin: 0;">📚 Digital Library Inventory</h2>
+        <button class="btn btn-primary">+ Add New Game</button>
     </div>
 
-    <div class="game-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px;">
-        {% for game in games %}
-        <div class="game-card">
-            <img src="{{ game.image_url }}" alt="{{ game.title }}" style="width: 100%; border-radius: 4px;">
-            <h3>{{ game.title }}</h3>
-            <p>{{ game.player_count }} Players</p>
-            
-            <div style="margin-top: 15px;">
-                {% if game.is_available %}
-                    <span class="status-badge available">ON SHELF</span>
-                {% else %}
-                    <span class="status-badge checked-out">IN USE</span>
-                {% endif %}
+    {% if games %}
+        <div class="game-grid">
+            {% for game in games %}
+            <div class="game-card">
+                <img src="{{ game.image_url }}" alt="{{ game.title }}" onerror="this.src='https://via.placeholder.com/280x250?text=No+Image'">
+                <div class="game-card-content">
+                    <h3>{{ game.title }}</h3>
+                    <p><strong>Price:</strong> {{ game.price }}</p>
+                    
+                    {% if game.is_available %}
+                        <span class="status-badge available">✓ ON SHELF</span>
+                    {% else %}
+                        <span class="status-badge checked-out">✗ IN USE</span>
+                    {% endif %}
+                    
+                    <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                        <a href="{{ url_for('game_details', game_id=game.id) }}" class="btn" style="flex: 1; text-align: center;">View Details</a>
+                        <a href="{{ url_for('toggle_game', game_id=game.id) }}" class="btn btn-danger" style="flex: 1; text-align: center;">Toggle Status</a>
+                    </div>
+                </div>
             </div>
-
-            <a href="{{ url_for('toggle_game', game_id=game.id) }}" 
-               class="btn" style="display: block; text-align: center; margin-top: 10px; text-decoration: none; border: 1px solid var(--wood-dark);">
-                Toggle Status
-            </a>
+            {% endfor %}
         </div>
-        {% endfor %}
-    </div>
+    {% else %}
+        <p style="color: #7f8c8d; padding: 2rem; text-align: center;">No games in the library yet.</p>
+    {% endif %}
 </div>
 {% endblock %}
