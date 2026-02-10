@@ -1,8 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for
 from models import db, Game, SessionLobby
+import os
+from dotenv import load_dotenv
 
+load_dotenv() # This loads the variables from the .env file
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://username:password@localhost/tabletop_db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
