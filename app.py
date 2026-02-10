@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from models import db, Game, SessionLobby, UserProfile, SessionParticipant, CreditTransaction, SessionStatus
 import os
+import json
 from dotenv import load_dotenv
 from datetime import datetime
 from functools import wraps
@@ -12,6 +13,66 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 
 db.init_app(app)
+
+
+# ============================================================================
+# DATABASE INITIALIZATION - LOAD GAMES ON STARTUP
+# ============================================================================
+def load_games_from_json():
+    """Load board games from hobbygames_full_export.json on app startup."""
+    json_file = 'hobbygames_full_export.json'
+    
+    if not os.path.exists(json_file):
+        return
+    
+    with app.app_context():
+        try:
+            # Check if games already loaded
+            if Game.query.first() is not None:
+                return
+            
+            # Load JSON
+            with open(json_file, 'r', encoding='utf-8') as f:
+                games_data = json.load(f)
+            
+            print(f"📖 Loading {len(games_data)} games from {json_file}...")
+            
+            added_count = 0
+            for game_data in games_data:
+                try:
+                    title = game_data.get('title', 'Unknown Game')
+                    price = game_data.get('price', 'N/A')
+                    image_url = None
+                    
+                    # Get first image from gallery
+                    gallery = game_data.get('gallery', [])
+                    if gallery and len(gallery) > 0:
+                        image_url = gallery[0]
+                    
+                    game = Game(
+                        title=title,
+                        price=price,
+                        image_url=image_url,
+                        is_available=True,
+                        full_data=game_data
+                    )
+                    
+                    db.session.add(game)
+                    added_count += 1
+                    
+                    # Commit in batches
+                    if added_count % 50 == 0:
+                        db.session.commit()
+                
+                except Exception as e:
+                    db.session.rollback()
+                    continue
+            
+            db.session.commit()
+            print(f"✅ Loaded {added_count} games into database")
+        
+        except Exception as e:
+            print(f"⚠️  Could not load games: {str(e)}")
 
 
 # ============================================================================
@@ -494,4 +555,5 @@ def inject_user():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        load_games_from_json()
     app.run(debug=True, host='0.0.0.0', port=5000)
