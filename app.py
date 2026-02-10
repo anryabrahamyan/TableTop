@@ -267,13 +267,14 @@ def create_session(user):
             slots_total = request.form.get('slots_total', type=int, default=4)
             
             # Validation
+            user_id = request.form.get('user_id')
             if not game_id or not Game.query.get(game_id):
                 flash('Invalid game selected', 'error')
-                return render_template('create_session.html', games=Game.query.all())
+                return render_template('create_session.html', games=Game.query.all(), user_id=user_id)
             
             if slots_total < 2 or slots_total > 10:
                 flash('Players must be between 2 and 10', 'error')
-                return render_template('create_session.html', games=Game.query.all())
+                return render_template('create_session.html', games=Game.query.all(), user_id=user_id)
             
             # Create session with current user as host
             session = SessionLobby(
@@ -296,7 +297,8 @@ def create_session(user):
             return redirect(url_for('view_session', session_id=session.id) + f'?user_id={user.id}')
         
         games = Game.query.filter_by(is_available=True).all()
-        return render_template('create_session.html', games=games, user=user)
+        user_id = request.args.get('user_id')
+        return render_template('create_session.html', games=games, user=user, user_id=user_id)
     
     except Exception as e:
         flash(f'Error creating session: {str(e)}', 'error')
