@@ -12,17 +12,11 @@ db.init_app(app)
 
 @app.route('/')
 def dashboard():
-    # FR.2.1: Filter lobbies by state for better floor awareness
-    recruiting_lobbies = SessionLobby.query.filter_by(status='RECRUITING').all()
+    # Fetch active sessions and table status for the dashboard
     active_sessions = SessionLobby.query.filter_by(status='ACTIVE').all()
-    
-    # FR.4.1: Pull admin profile for the Credit Ledger view
-    user = UserProfile.query.first() 
-    
-    return render_template('dashboard.html', 
-                           recruiting=recruiting_lobbies, 
-                           active=active_sessions, 
-                           user=user)
+    recruiting_sessions = SessionLobby.query.filter_by(status='RECRUITING').all()
+    return render_template('dashboard.html', active=active_sessions, recruiting=recruiting_sessions)
+
 @app.route('/library')
 def library():
     # Staff view of the physical game shelf

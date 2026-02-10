@@ -1,63 +1,32 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container">
-    <div class="dashboard-header">
-        <div>
-            <h1>Floor Overview</h1>
-            <p class="subtitle">Real-time status of cafe tables and LFG lobbies.</p>
-        </div>
-        <div class="stat-group">
-            <div class="stat-card">
-                <span class="label">Total Credits</span>
-                <span class="value">🪙 {{ user.credit_balance if user else 0 }}</span>
+    <h2>Cafe Floor Overview</h2>
+    
+    <div class="section">
+        <h3>📢 Recruiting Lobbies (Waitlist)</h3>
+        <div class="lobby-grid">
+            {% for session in recruiting %}
+            <div class="game-card">
+                <h4>{{ session.game_name }}</h4>
+                <p>Players Needed: {{ session.slots_remaining }}</p>
+                <button class="btn">Confirm Check-in</button>
             </div>
-            <div class="stat-card">
-                <span class="label">Active Tables</span>
-                <span class="value">{{ active|length }}</span>
-            </div>
+            {% endfor %}
         </div>
     </div>
 
-    <section class="floor-section">
-        <h2 class="section-title">📢 LFG Lobbies <span class="count">{{ recruiting|length }}</span></h2>
-        <div class="grid">
-            {% for lobby in recruiting %}
-            <div class="modern-card lobby-card">
-                <div class="card-badge">RECRUITING</div>
-                <div class="card-body">
-                    <h3>{{ lobby.game.title }}</h3>
-                    <p>Table #{{ lobby.table_number }}</p>
-                    
-                    <div class="player-slots">
-                        <div class="slot-text">
-                            <span>Players Joined</span>
-                            <span>{{ lobby.slots_filled }} / {{ lobby.slots_total }}</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: {{ (lobby.slots_filled / lobby.slots_total) * 100 }}%;"></div>
-                        </div>
-                    </div>
-                    <button class="btn btn-primary full-width">Check-in Players</button>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </section>
-
-    <section class="floor-section">
-        <h2 class="section-title">🎲 Active Sessions <span class="count">{{ active|length }}</span></h2>
-        <div class="grid">
+    <div class="section">
+        <h3>🎲 Active Tables</h3>
+        <div class="lobby-grid">
             {% for session in active %}
-            <div class="modern-card active-card">
-                <div class="card-body">
-                    <div class="table-id">TABLE {{ session.table_number }}</div>
-                    <h3>{{ session.game.title }}</h3>
-                    <p class="status-text">🟢 Session in progress</p>
-                    <button class="btn btn-outline full-width">Complete Session</button>
-                </div>
+            <div class="game-card">
+                <h4>Table #{{ session.table_number }}</h4>
+                <p>Game: {{ session.game_name }}</p>
+                <span class="status-badge available">In Progress</span>
             </div>
             {% endfor %}
         </div>
-    </section>
+    </div>
 </div>
 {% endblock %}

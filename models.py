@@ -18,29 +18,12 @@ class Game(db.Model):
 
 # 2. USER IDENTITY & CREDIT ENGINE (FR.1.1 & FR.4.1)
 class UserProfile(db.Model):
-    __tablename__ = 'user_profiles'
-
+    __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
-    
-    # Basic Identity (FR.1.1)
     username = db.Column(db.String(50), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    
-    # Financial Ledger (FR.4.1)
-    # This stores the "TableTop Credits" used for the peer-to-peer marketplace.
-    credit_balance = db.Column(db.Integer, default=0)
-    
-    # Social Metadata (URD: Gamer Experience)
-    # Tracks how often the user shows up to joined sessions without "ghosting".
+    credit_balance = db.Column(db.Integer, default=0) 
     reliability_streak = db.Column(db.Integer, default=0)
-    
-    # Play History (URD: Digital Trophy Case)
-    # We can use this to show what games the user has played at the cafe.
-    bio = db.Column(db.Text, nullable=True)
-    joined_at = db.Column(db.DateTime, default=db.func.current_timestamp())
-
-    def __repr__(self):
-        return f'<UserProfile {self.username}>'
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 # 3. SESSION & LFG LOGIC (FR.2.1)
 class SessionLobby(db.Model):
