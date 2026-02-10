@@ -21,7 +21,7 @@
                     {% endif %}
                     
                     <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                        <a href="{{ url_for('game_details', game_id=game.id) }}" class="btn" style="flex: 1; text-align: center;">View Details</a>
+                        <a href="{{ url_for('game_details', game_id=game.id, user_id=request.args.get('user_id')) }}" class="btn" style="flex: 1; text-align: center;">View Details</a>
                         <form method="POST" action="{{ url_for('toggle_game', game_id=game.id) }}" style="flex: 1;">
                             <button type="submit" class="btn btn-danger" style="width: 100%;">Toggle Status</button>
                         </form>

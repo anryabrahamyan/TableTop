@@ -221,6 +221,7 @@ def game_details(game_id):
     """Detailed view of a single game."""
     try:
         game = Game.query.get_or_404(game_id)
+        user_id = request.args.get('user_id')
         
         # Get active sessions for this game
         active_lobbies = SessionLobby.query.filter_by(
@@ -228,10 +229,11 @@ def game_details(game_id):
             status=SessionStatus.RECRUITING.value
         ).all()
         
-        return render_template('game_details.html', game=game, lobbies=active_lobbies)
+        return render_template('game_details.html', game=game, lobbies=active_lobbies, user_id=user_id)
     except Exception as e:
         flash(f'Error loading game details: {str(e)}', 'error')
-        return redirect(url_for('library'))
+        user_id = request.args.get('user_id')
+        return redirect(url_for('library', user_id=user_id))
 
 
 # ============================================================================
@@ -281,23 +283,24 @@ def create_session(user):
                 status=SessionStatus.RECRUITING.value,
                 host_id=user.id
             )
+            db.session.add(session)
+            db.session.flush()  # Get session.id without committing
             
             # Add host as first participant
-            participant = SessionParticipant(session_id=None, user_id=user.id)
+            participant = SessionParticipant(session_id=session.id, user_id=user.id)
             session.participants.append(participant)
             
-            db.session.add(session)
             db.session.commit()
             
             flash(f'Session created for {Game.query.get(game_id).title}!', 'success')
-            return redirect(url_for('view_session', session_id=session.id, user_id=user.id))
+            return redirect(url_for('view_session', session_id=session.id) + f'?user_id={user.id}')
         
         games = Game.query.filter_by(is_available=True).all()
         return render_template('create_session.html', games=games, user=user)
     
     except Exception as e:
         flash(f'Error creating session: {str(e)}', 'error')
-        return redirect(url_for('dashboard', user_id=user.id))
+        return redirect(url_for('dashboard') + f'?user_id={user.id}')
 
 
 @app.route('/session/<int:session_id>')
@@ -306,11 +309,15 @@ def view_session(session_id):
     try:
         user = get_current_user()
         session = SessionLobby.query.get_or_404(session_id)
+        user_id = request.args.get('user_id')
         
-        return render_template('view_session.html', session=session, user=user)
+        return render_template('view_session.html', session=session, user=user, user_id=user_id)
     except Exception as e:
         flash(f'Error loading session: {str(e)}', 'error')
-        return redirect(url_for('dashboard'))
+        user_id = request.args.get('user_id')
+        if user_id:
+            return redirect(url_for('dashboard', user_id=user_id))
+        return redirect(url_for('login'))
 
 
 @app.route('/session/<int:session_id>/join', methods=['POST'])
@@ -323,30 +330,30 @@ def join_session(session_id, user):
         # Validation
         if session.status != SessionStatus.RECRUITING.value:
             flash('This session is not recruiting', 'error')
-            return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
+            return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
         
         if session.is_full:
             flash('Session is full', 'error')
-            return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
+            return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
         
         # Check if user already in session
         if any(p.user_id == user.id for p in session.participants):
             flash('You are already in this session', 'warning')
-            return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
+            return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
         
         # Add participant
         session.add_participant(user)
         db.session.commit()
         
         flash(f'Joined session! {session.slots_remaining} slot(s) remaining', 'success')
-        return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
+        return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
     
     except ValueError as e:
         flash(f'Cannot join: {str(e)}', 'error')
-        return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
+        return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
     except Exception as e:
         flash(f'Error joining session: {str(e)}', 'error')
-        return redirect(url_for('dashboard', user_id=user.id))
+        return redirect(url_for('dashboard') + f'?user_id={user.id}')
 
 
 @app.route('/session/<int:session_id>/leave', methods=['POST'])
@@ -359,17 +366,17 @@ def leave_session(session_id, user):
         # Cannot leave if hosting
         if session.host_id == user.id:
             flash('Hosts cannot leave their own session. Cancel it instead.', 'warning')
-            return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
+            return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
         
         session.remove_participant(user)
         db.session.commit()
         
         flash('Left session', 'success')
-        return redirect(url_for('dashboard', user_id=user.id))
+        return redirect(url_for('dashboard') + f'?user_id={user.id}')
     
     except Exception as e:
         flash(f'Error leaving session: {str(e)}', 'error')
-        return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
+        return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
 
 
 @app.route('/session/<int:session_id>/start', methods=['POST'])
@@ -382,22 +389,22 @@ def start_session(session_id, user):
         # Validation
         if session.host_id != user.id:
             flash('Only the host can start the session', 'error')
-            return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
+            return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
         
         if not session.can_start:
             flash(f'Need at least 2 players. Currently {session.slots_filled}', 'error')
-            return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
+            return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
         
         session.status = SessionStatus.ACTIVE.value
         session.started_at = datetime.utcnow()
         db.session.commit()
         
         flash('Session started! Have fun!', 'success')
-        return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
+        return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
     
     except Exception as e:
         flash(f'Error starting session: {str(e)}', 'error')
-        return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
+        return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
 
 
 @app.route('/session/<int:session_id>/complete', methods=['POST'])
@@ -410,20 +417,20 @@ def complete_session(session_id, user):
         # Validation
         if session.host_id != user.id:
             flash('Only the host can complete the session', 'error')
-            return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
+            return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
         
         session.complete_session()
         db.session.commit()
         
         flash('Session completed! Credits awarded to all participants.', 'success')
-        return redirect(url_for('dashboard', user_id=user.id))
+        return redirect(url_for('dashboard') + f'?user_id={user.id}')
     
     except ValueError as e:
         flash(f'Cannot complete: {str(e)}', 'error')
-        return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
+        return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
     except Exception as e:
         flash(f'Error completing session: {str(e)}', 'error')
-        return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
+        return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
 
 
 @app.route('/session/<int:session_id>/cancel', methods=['POST'])
@@ -436,7 +443,7 @@ def cancel_session(session_id, user):
         # Validation
         if session.host_id != user.id:
             flash('Only the host can cancel the session', 'error')
-            return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
+            return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
         
         session.status = SessionStatus.CANCELLED.value
         
@@ -453,11 +460,11 @@ def cancel_session(session_id, user):
         db.session.commit()
         
         flash('Session cancelled. Penalty applied.', 'warning')
-        return redirect(url_for('dashboard', user_id=user.id))
+        return redirect(url_for('dashboard') + f'?user_id={user.id}')
     
     except Exception as e:
         flash(f'Error cancelling session: {str(e)}', 'error')
-        return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
+        return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
 
 
 # ============================================================================

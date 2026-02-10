@@ -40,8 +40,8 @@
         {% endif %}
         
         <div style="margin-top: 2rem; display: flex; gap: 1rem;">
-            <button class="btn btn-success" style="flex: 1; padding: 1rem;">🎮 Start LFG Session</button>
-            <a href="{{ url_for('library') }}" class="btn" style="flex: 1; padding: 1rem; text-align: center;">← Back to Library</a>
+            <a href="{{ url_for('create_session', user_id=request.args.get('user_id')) }}" class="btn btn-success" style="flex: 1; padding: 1rem; text-align: center; text-decoration: none;">🎮 Start LFG Session</a>
+            <a href="{{ url_for('library', user_id=request.args.get('user_id')) }}" class="btn" style="flex: 1; padding: 1rem; text-align: center;">← Back to Library</a>
         </div>
     </div>
 </div>
