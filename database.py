@@ -1,4 +1,5 @@
 import json
+import os
 from datetime import datetime
 from app import app
 from models import db, Game, UserProfile, SessionLobby, SessionParticipant, SessionStatus, VenueConfig, CreditTransaction
@@ -33,54 +34,67 @@ def init_db():
             print("📚 Importing Board Game Metadata from JSON...")
             games_loaded = 0
             try:
-                with open('hobbygames_full_export.json', 'r', encoding='utf-8') as f:
-                    raw_data = json.load(f)
-                    
-                    if not isinstance(raw_data, list):
-                        print("❌ Error: JSON file is not a list of games")
-                        return
+                json_file = 'hobbygames_full_export.json'
+                if not os.path.exists(json_file):
+                    print(f"⚠️  Warning: {json_file} not found. Creating test games instead.")
+                json_file = 'hobbygames_full_export.json'
+                if not os.path.exists(json_file):
+                    print(f"⚠️  Warning: {json_file} not found. Creating test games instead.")
+                    raw_data = [
+                        {'title': 'Catan', 'price': '25 AMD', 'gallery': ['https://via.placeholder.com/300x300?text=Catan'], 'playtime_minutes': 60},
+                        {'title': 'Ticket to Ride', 'price': '30 AMD', 'gallery': ['https://via.placeholder.com/300x300?text=Ticket+to+Ride'], 'playtime_minutes': 90},
+                        {'title': 'Pandemic', 'price': '28 AMD', 'gallery': ['https://via.placeholder.com/300x300?text=Pandemic'], 'playtime_minutes': 45}
+                    ]
+                else:
+                    with open(json_file, 'r', encoding='utf-8') as f:
+                        raw_data = json.load(f)
+                
+                if not isinstance(raw_data, list):
+                    print("❌ Error: JSON file is not a list of games")
+                    db.session.rollback()
+                    return
 
-                    for item in raw_data:
-                        try:
-                            # Validate required fields
-                            if not item.get('title'):
-                                continue
-                            
-                            # Skip accessories and non-games
-                            if "Протекторы" in item.get('title', ''):
-                                continue
-                            
-                            gallery = item.get('gallery', [])
-                            if not gallery or len(gallery) == 0:
-                                continue
-
-                            new_game = Game(
-                                title=item['title'].strip(),
-                                price=str(item.get('price', 'N/A')).strip(),
-                                image_url=gallery[0] if gallery else None,
-                                estimated_playtime_minutes=item.get('playtime_minutes', 60),
-                                full_data=item,
-                                is_available=True
-                            )
-                            db.session.add(new_game)
-                            games_loaded += 1
-
-                            # Commit in batches to avoid memory issues
-                            if games_loaded % 50 == 0:
-                                db.session.commit()
-                                print(f"  → Loaded {games_loaded} games...")
-
-                            # Limit to 30 games for initial seed
-                            if games_loaded >= 30:
-                                break
-
-                        except Exception as e:
-                            print(f"  ⚠️  Skipping game: {str(e)}")
-                            db.session.rollback()
+                for item in raw_data:
+                    try:
+                        # Validate required fields
+                        if not item.get('title'):
+                            continue
+                        
+                        # Skip accessories and non-games
+                        if "Протекторы" in item.get('title', ''):
+                            continue
+                        
+                        gallery = item.get('gallery', [])
+                        if not gallery or len(gallery) == 0:
                             continue
 
-                    db.session.commit()
-                    print(f"✓ Imported {games_loaded} games")
+                        new_game = Game(
+                            title=item['title'].strip(),
+                            price=str(item.get('price', 'N/A')).strip(),
+                            image_url=gallery[0] if gallery else None,
+                            estimated_playtime_minutes=item.get('playtime_minutes', 60),
+                            full_data=item,
+                            is_available=True
+                        )
+                        db.session.add(new_game)
+                        games_loaded += 1
+
+                        # Commit in batches to avoid memory issues
+                        if games_loaded % 50 == 0:
+                            db.session.commit()
+                            print(f"  → Loaded {games_loaded} games...")
+
+                        # Limit to 30 games for initial seed
+                        if games_loaded >= 30:
+                            break
+
+                    except Exception as e:
+                        print(f"  ⚠️  Skipping game: {str(e)}")
+                        db.session.rollback()
+                        continue
+
+                db.session.commit()
+                print(f"✓ Imported {games_loaded} games")
 
             except FileNotFoundError:
                 print("❌ Error: hobbygames_full_export.json not found!")
@@ -147,9 +161,11 @@ def init_db():
             print("🎲 Creating Sample Sessions...")
             try:
                 # Get sample games and users
-                game1 = Game.query.filter_by(title__ilike='%Catan%').first()
+                game1 = Game.query.first()
                 if not game1:
-                    game1 = Game.query.first()
+                    print("⚠️  No games available to create sessions")
+                    db.session.rollback()
+                    return
                 
                 game2 = Game.query.order_by(Game.id.desc()).limit(1).first()
                 
