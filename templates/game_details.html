@@ -1,48 +1,87 @@
 {% extends "base.html" %}
+
 {% block content %}
-<div class="game-detail-container">
-    <div>
-        <img src="{{ game.image_url }}" alt="{{ game.title }}" onerror="this.src='https://via.placeholder.com/400x400?text=No+Image'" style="width: 100%; border-radius: 12px;">
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-top: 1.5rem;">
-            {% for img in game.full_data.gallery[:4] %}
-            <img src="{{ img }}" alt="Gallery image" style="width: 100%; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-            {% endfor %}
+<div class="container" style="max-width: 900px;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h2 style="color: #2c3e50; margin: 0;">{{ game.title }}</h2>
+            <p style="color: #7f8c8d; margin: 0.5rem 0 0 0;">Price: {{ game.price }}</p>
+        </div>
+        <a href="{{ url_for('library') }}" class="btn btn-primary">← Back to Library</a>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+        <!-- Game Image -->
+        <div>
+            {% if game.image_url %}
+                <img src="{{ game.image_url }}" alt="{{ game.title }}" 
+                     style="width: 100%; height: auto; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+            {% else %}
+                <img src="https://via.placeholder.com/400x300?text=No+Image" alt="No image" 
+                     style="width: 100%; height: auto; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+            {% endif %}
+        </div>
+
+        <!-- Game Info -->
+        <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+            <h3 style="color: #2c3e50; margin-top: 0;">Game Information</h3>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <p style="color: #7f8c8d; font-size: 0.85rem; margin: 0;">Status</p>
+                <p style="margin: 0.5rem 0 0 0;">
+                    {% if game.is_available %}
+                        <span style="display: inline-block; padding: 0.5rem 1rem; background: #e8ffe8; color: #27ae60; border-radius: 20px; font-weight: 500;">
+                            ✓ Available on Shelf
+                        </span>
+                    {% else %}
+                        <span style="display: inline-block; padding: 0.5rem 1rem; background: #ffe8e8; color: #e74c3c; border-radius: 20px; font-weight: 500;">
+                            ✗ Currently in Use
+                        </span>
+                    {% endif %}
+                </p>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <p style="color: #7f8c8d; font-size: 0.85rem; margin: 0;">Estimated Play Time</p>
+                <p style="color: #2c3e50; margin: 0.5rem 0 0 0; font-weight: 600; font-size: 1.2rem;">
+                    {{ game.estimated_playtime_minutes }} minutes
+                </p>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <p style="color: #7f8c8d; font-size: 0.85rem; margin: 0;">Price</p>
+                <p style="color: #2c3e50; margin: 0.5rem 0 0 0; font-weight: 600; font-size: 1.2rem;">
+                    {{ game.price }}
+                </p>
+            </div>
         </div>
     </div>
 
-    <div>
-        <h1>{{ game.title }}</h1>
-        <p class="price">{{ game.price }}</p>
+    <!-- Active Lobbies -->
+    <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); margin-bottom: 2rem;">
+        <h3 style="color: #2c3e50; margin-top: 0;">🎮 Active Lobbies</h3>
         
-        {% if game.full_data.details %}
-        <div class="detail-section">
-            <h3>📋 Game Details</h3>
-            <ul style="list-style: none;">
-                {% for key, value in game.full_data.details.items() %}
-                <li style="padding: 0.5rem 0;"><strong>{{ key }}:</strong> {{ value }}</li>
+        {% if lobbies %}
+            <div style="display: grid; gap: 1rem;">
+                {% for lobby in lobbies %}
+                    <div style="padding: 1rem; border: 1px solid #ecf0f1; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <p style="color: #2c3e50; font-weight: 600; margin: 0;">Lobby by {{ lobby.host.username }}</p>
+                            <p style="color: #7f8c8d; margin: 0.25rem 0 0 0;">Players: {{ lobby.slots_filled }}/{{ lobby.slots_total }}</p>
+                        </div>
+                        <a href="{{ url_for('view_session', session_id=lobby.id) }}" class="btn btn-success" style="text-decoration: none;">View</a>
+                    </div>
                 {% endfor %}
-            </ul>
-        </div>
+            </div>
+        {% else %}
+            <p style="color: #7f8c8d; text-align: center; padding: 1rem;">No active lobbies for this game.</p>
         {% endif %}
+    </div>
 
-        {% if game.full_data.package %}
-        <div class="detail-section">
-            <h3>📦 Package Contents</h3>
-            <p style="white-space: pre-wrap; font-size: 0.95rem;">{{ game.full_data.package }}</p>
-        </div>
-        {% endif %}
-
-        {% if game.full_data.description %}
-        <div class="detail-section">
-            <h3>📜 Description</h3>
-            <p style="line-height: 1.8;">{{ game.full_data.description[:800] }}{% if game.full_data.description|length > 800 %}...{% endif %}</p>
-        </div>
-        {% endif %}
-        
-        <div style="margin-top: 2rem; display: flex; gap: 1rem;">
-            <a href="{{ url_for('create_session', user_id=request.args.get('user_id')) }}" class="btn btn-success" style="flex: 1; padding: 1rem; text-align: center; text-decoration: none;">🎮 Start LFG Session</a>
-            <a href="{{ url_for('library', user_id=request.args.get('user_id')) }}" class="btn" style="flex: 1; padding: 1rem; text-align: center;">← Back to Library</a>
-        </div>
+    <!-- Action Buttons -->
+    <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+        <a href="{{ url_for('create_session') }}" class="btn btn-success" style="flex: 1; padding: 1rem; text-align: center; text-decoration: none;">🎮 Start LFG Session</a>
+        <a href="{{ url_for('library') }}" class="btn" style="flex: 1; padding: 1rem; text-align: center;">← Back to Library</a>
     </div>
 </div>
 {% endblock %}

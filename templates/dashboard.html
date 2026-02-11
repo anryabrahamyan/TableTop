@@ -51,7 +51,7 @@
                     <div class="game-card-content">
                         <p><strong>Players:</strong> {{ session.slots_filled }}/{{ session.slots_total }}</p>
                         <p><strong>Status:</strong> <span class="status-badge">ACTIVE</span></p>
-                        {% if session_info.time_remaining %}
+                        {% if session.time_remaining_minutes %}
                             <p><strong>Time:</strong> {{ session.time_remaining_minutes }}m remaining</p>
                         {% endif %}
                         <a href="{{ url_for('view_session', session_id=session.id) }}" class="btn btn-primary" style="margin-top: auto; text-decoration: none;">👁️ View</a>

@@ -3,16 +3,14 @@
 {% block content %}
 <div class="container" style="max-width: 900px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
-        <div>
-            <h2 style="color: #2c3e50; margin: 0;">👤 Profile</h2>
-            <p style="color: #7f8c8d; margin: 0.5rem 0 0 0;">{{ user.username }}</p>
-        </div>
-        <a href="{{ url_for('dashboard', user_id=user.id) }}" class="btn btn-primary">← Back to Dashboard</a>
+        <h2 style="color: #2c3e50; margin: 0;">👤 {{ user.username }}</h2>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary">← Dashboard</a>
     </div>
 
+    <!-- User Stats -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
         <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); border-left: 4px solid #3498db;">
-            <p style="color: #7f8c8d; font-size: 0.9rem; margin: 0;">Credit Balance</p>
+            <p style="color: #7f8c8d; font-size: 0.9rem; margin: 0;">Current Credits</p>
             <h3 style="color: #2c3e50; margin: 0.5rem 0 0 0; font-size: 2rem;">{{ user.credit_balance }}</h3>
         </div>
         
@@ -25,7 +23,7 @@
             <p style="color: #7f8c8d; font-size: 0.9rem; margin: 0;">Sessions Completed</p>
             <h3 style="color: #2c3e50; margin: 0.5rem 0 0 0; font-size: 2rem;">{{ user.sessions_completed }}</h3>
         </div>
-        
+
         <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); border-left: 4px solid #f39c12;">
             <p style="color: #7f8c8d; font-size: 0.9rem; margin: 0;">Member Since</p>
             <p style="color: #2c3e50; margin: 0.5rem 0 0 0; font-size: 0.9rem;">{{ user.created_at.strftime('%b %d, %Y') }}</p>
@@ -72,26 +70,27 @@
     <!-- Credit History -->
     <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
         <h3 style="color: #2c3e50; margin-top: 0;">💰 Credit History</h3>
+        
         {% if transactions %}
             <div style="overflow-x: auto;">
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead style="background: #ecf0f1;">
                         <tr>
                             <th style="padding: 0.75rem; text-align: left; color: #2c3e50;">Date</th>
-                            <th style="padding: 0.75rem; text-align: left; color: #2c3e50;">Amount</th>
                             <th style="padding: 0.75rem; text-align: left; color: #2c3e50;">Type</th>
+                            <th style="padding: 0.75rem; text-align: left; color: #2c3e50;">Amount</th>
                             <th style="padding: 0.75rem; text-align: left; color: #2c3e50;">Description</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for tx in transactions %}
+                        {% for transaction in transactions %}
                             <tr style="border-bottom: 1px solid #ecf0f1;">
-                                <td style="padding: 0.75rem;">{{ tx.created_at.strftime('%b %d, %H:%M') }}</td>
-                                <td style="padding: 0.75rem; color: {% if tx.amount > 0 %}#27ae60{% else %}#e74c3c{% endif %}; font-weight: 600;">
-                                    {{ '+' if tx.amount > 0 else '' }}{{ tx.amount }}
+                                <td style="padding: 0.75rem;">{{ transaction.created_at.strftime('%b %d, %H:%M') }}</td>
+                                <td style="padding: 0.75rem;">{{ transaction.transaction_type }}</td>
+                                <td style="padding: 0.75rem; font-weight: 600; color: {% if transaction.amount > 0 %}#27ae60{% else %}#e74c3c{% endif %};">
+                                    {% if transaction.amount > 0 %}+{% endif %}{{ transaction.amount }}
                                 </td>
-                                <td style="padding: 0.75rem; font-size: 0.9rem;">{{ tx.transaction_type.replace('_', ' ') }}</td>
-                                <td style="padding: 0.75rem; color: #7f8c8d; font-size: 0.9rem;">{{ tx.description }}</td>
+                                <td style="padding: 0.75rem; color: #7f8c8d; font-size: 0.9rem;">{{ transaction.description }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -101,15 +100,5 @@
             <p style="color: #7f8c8d; text-align: center; padding: 2rem;">No transactions yet.</p>
         {% endif %}
     </div>
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div style="margin-top: 1rem; padding: 1rem; border-radius: 8px; background: {% if category == 'error' %}#ffe0e0{% else %}#e0ffe0{% endif %}; color: {% if category == 'error' %}#c33{% else %}#33c33{% endif %};">
-                    {{ message }}
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
 </div>
 {% endblock %}

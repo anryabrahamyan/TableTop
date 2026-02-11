@@ -4,13 +4,11 @@
 <div class="container" style="max-width: 900px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
         <h2 style="color: #2c3e50; margin: 0;">🎮 Create LFG Session</h2>
-        <a href="{{ url_for('dashboard', user_id=request.args.get('user_id')) }}" class="btn btn-primary">← Cancel</a>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary">← Cancel</a>
     </div>
 
     <div style="background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); max-width: 600px;">
         <form method="POST">
-            <input type="hidden" name="user_id" value="{{ request.args.get('user_id') }}">
-            
             <!-- Game Selection -->
             <div style="margin-bottom: 1.5rem;">
                 <label for="game_id" style="display: block; font-weight: 600; color: #2c3e50; margin-bottom: 0.5rem;">
