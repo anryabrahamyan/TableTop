@@ -101,6 +101,7 @@ def init_db():
                 UserProfile(
                     username="Anri_Admin",
                     email="admin@tabletop.local",
+                    phone_number="+1234567890",
                     credit_balance=1000,
                     reliability_streak=10,
                     sessions_completed=25,
@@ -109,6 +110,7 @@ def init_db():
                 UserProfile(
                     username="Gamer_Guest",
                     email="guest@tabletop.local",
+                    phone_number="+1987654321",
                     credit_balance=250,
                     reliability_streak=2,
                     sessions_completed=5,
@@ -117,6 +119,7 @@ def init_db():
                 UserProfile(
                     username="Alice_Player",
                     email="alice@tabletop.local",
+                    phone_number="+1122334455",
                     credit_balance=100,
                     reliability_streak=3,
                     sessions_completed=8,
@@ -125,6 +128,7 @@ def init_db():
                 UserProfile(
                     username="Bob_Host",
                     email="bob@tabletop.local",
+                    phone_number="+1555666777",
                     credit_balance=500,
                     reliability_streak=7,
                     sessions_completed=15,

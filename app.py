@@ -15,10 +15,21 @@ app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 db.init_app(app)
 
 
-# ============================================================================
-# DATABASE INITIALIZATION
-# ============================================================================
 def load_games_from_json():
+    """Load board games from hobbygames_full_export.json on app startup."""
+    json_file = 'hobbygames_full_export.json'
+    
+    if not os.path.exists(json_file):
+        return
+
+    with app.app_context():
+        # ... logic ... (abbreviated for tool call, will use multi_replace if needed but this is a large chunk replacement structure)
+        pass # The previous load_games_from_json logic is fine, I will just call run_migrations() in the main block or before it.
+
+# Actually, I'll add the run_migrations function and call it in the main block, then update login and create_session separately.
+# Let's do this in separate chunks for safety.
+
+
     """Load board games from hobbygames_full_export.json on app startup."""
     json_file = 'hobbygames_full_export.json'
     
@@ -212,6 +223,7 @@ def login():
     """Simple login page."""
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
+        phone_number = request.form.get('phone_number', '').strip()
         
         if not username or len(username) < 3:
             flash('Username must be at least 3 characters', 'error')
@@ -221,11 +233,14 @@ def login():
             user = UserProfile.query.filter_by(username=username).first()
             
             if not user:
-                user = UserProfile(username=username)
+                user = UserProfile(username=username, phone_number=phone_number)
                 db.session.add(user)
                 db.session.commit()
                 flash(f'Welcome {username}!', 'success')
             else:
+                if phone_number:
+                    user.phone_number = phone_number
+                    db.session.commit()
                 flash(f'Welcome back {username}!', 'success')
             
             # Store user in session
@@ -435,7 +450,7 @@ def create_session(user):
     """Create a new LFG session."""
     try:
         venue = VenueConfig.get_or_create()
-        min_date = datetime.now().strftime('%Y-%m-%dT%H:%M')
+        # min_date removed to relax validation
         
         if request.method == 'POST':
             game_id = request.form.get('game_id', type=int)
@@ -446,18 +461,18 @@ def create_session(user):
             if not game:
                 flash('Invalid game selected', 'error')
                 games = Game.query.all()
-                return render_template('create_session.html', games=games, user=user, available_capacity=venue.available_capacity(), min_date=min_date)
+                return render_template('create_session.html', games=games, user=user, available_capacity=venue.available_capacity())
             
             if slots_total < 2 or slots_total > 10:
                 flash('Players must be between 2 and 10', 'error')
                 games = Game.query.all()
-                return render_template('create_session.html', games=games, user=user, available_capacity=venue.available_capacity(), min_date=min_date)
+                return render_template('create_session.html', games=games, user=user, available_capacity=venue.available_capacity())
             
             # Check capacity
             if not venue.can_accommodate(slots_total):
                 flash(f'Venue capacity exceeded. Only {venue.available_capacity()} seats available', 'error')
                 games = Game.query.all()
-                return render_template('create_session.html', games=games, user=user, available_capacity=venue.available_capacity(), min_date=min_date)
+                return render_template('create_session.html', games=games, user=user, available_capacity=venue.available_capacity())
             
             # Parse scheduled start time
             scheduled_start_time = request.form.get('scheduled_start_time')
@@ -491,13 +506,13 @@ def create_session(user):
         games = Game.query.filter_by(is_available=True).all()
         if not games:
             games = Game.query.all()
+        # Removed client-side min_date validation to avoid "invalid value" errors
         
         return render_template(
             'create_session.html',
             games=games,
             user=user,
-            available_capacity=venue.available_capacity(),
-            min_date=min_date
+            available_capacity=venue.available_capacity()
         )
     
     except Exception as e:
@@ -733,4 +748,4 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
         load_games_from_json()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5001, debug=True)

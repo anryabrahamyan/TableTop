@@ -7,12 +7,21 @@
         <p style="color: #7f8c8d; font-size: 0.95rem;">Board Game Cafe Management</p>
     </div>
 
-    <form method="POST" style="background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+    <form method="POST"
+        style="background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
         <div style="margin-bottom: 1.5rem;">
-            <label for="username" style="display: block; font-weight: 600; color: #2c3e50; margin-bottom: 0.5rem;">Username</label>
-            <input type="text" id="username" name="username" required minlength="3" 
-                   placeholder="Enter your username"
-                   style="width: 100%; padding: 0.75rem; border: 1px solid #ecf0f1; border-radius: 8px; font-size: 1rem; box-sizing: border-box;">
+            <label for="username"
+                style="display: block; font-weight: 600; color: #2c3e50; margin-bottom: 0.5rem;">Username</label>
+            <input type="text" id="username" name="username" required minlength="3" placeholder="Enter your username"
+                style="width: 100%; padding: 0.75rem; border: 1px solid #ecf0f1; border-radius: 8px; font-size: 1rem; box-sizing: border-box;">
+        </div>
+
+        <div style="margin-bottom: 2rem;">
+            <label for="phone_number"
+                style="display: block; font-weight: 600; color: #2c3e50; margin-bottom: 0.5rem;">Phone Number
+                (Optional)</label>
+            <input type="tel" id="phone_number" name="phone_number" placeholder="+1234567890"
+                style="width: 100%; padding: 0.75rem; border: 1px solid #ecf0f1; border-radius: 8px; font-size: 1rem; box-sizing: border-box;">
         </div>
 
         <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-size: 1rem;">
@@ -21,13 +30,14 @@
     </form>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div style="margin-top: 1rem; padding: 1rem; border-radius: 8px; background: {% if category == 'error' %}#ffe0e0{% else %}#e0ffe0{% endif %}; color: {% if category == 'error' %}#c33{% else %}#33c33{% endif %};">
-                    {{ message }}
-                </div>
-            {% endfor %}
-        {% endif %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div
+        style="margin-top: 1rem; padding: 1rem; border-radius: 8px; background: {% if category == 'error' %}#ffe0e0{% else %}#e0ffe0{% endif %}; color: {% if category == 'error' %}#c33{% else %}#33c33{% endif %};">
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
     {% endwith %}
 </div>
 {% endblock %}

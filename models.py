@@ -88,6 +88,7 @@ class UserProfile(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False, index=True)
     email = db.Column(db.String(120), unique=True)
+    phone_number = db.Column(db.String(20))
     credit_balance = db.Column(db.Integer, default=0)
     reliability_streak = db.Column(db.Integer, default=0)
     sessions_completed = db.Column(db.Integer, default=0)
