@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
-from models import db, Game, SessionLobby, UserProfile, SessionParticipant, CreditTransaction, SessionStatus
+from models import db, Game, SessionLobby, UserProfile, SessionParticipant, CreditTransaction, SessionStatus, VenueConfig
 import os
 import json
 from dotenv import load_dotenv
@@ -8,7 +8,7 @@ from functools import wraps
 
 load_dotenv()
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///tabletop.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 
@@ -16,7 +16,7 @@ db.init_app(app)
 
 
 # ============================================================================
-# DATABASE INITIALIZATION - LOAD GAMES ON STARTUP
+# DATABASE INITIALIZATION
 # ============================================================================
 def load_games_from_json():
     """Load board games from hobbygames_full_export.json on app startup."""
@@ -24,35 +24,38 @@ def load_games_from_json():
     
     if not os.path.exists(json_file):
         return
-    
+
     with app.app_context():
         try:
-            # Check if games already loaded
             if Game.query.first() is not None:
                 return
             
-            # Load JSON
             with open(json_file, 'r', encoding='utf-8') as f:
                 games_data = json.load(f)
             
+            if not isinstance(games_data, list):
+                print("⚠️  hobbygames_full_export.json is not a valid list")
+                return
+
             print(f"📖 Loading {len(games_data)} games from {json_file}...")
             
             added_count = 0
             for game_data in games_data:
                 try:
-                    title = game_data.get('title', 'Unknown Game')
-                    price = game_data.get('price', 'N/A')
-                    image_url = None
+                    if not game_data.get('title'):
+                        continue
                     
-                    # Get first image from gallery
+                    title = str(game_data.get('title', 'Unknown Game')).strip()
+                    price = str(game_data.get('price', 'N/A')).strip()
                     gallery = game_data.get('gallery', [])
-                    if gallery and len(gallery) > 0:
-                        image_url = gallery[0]
+                    image_url = gallery[0] if gallery and len(gallery) > 0 else None
+                    playtime = game_data.get('playtime_minutes', 60)
                     
                     game = Game(
                         title=title,
                         price=price,
                         image_url=image_url,
+                        estimated_playtime_minutes=playtime or 60,
                         is_available=True,
                         full_data=game_data
                     )
@@ -60,7 +63,6 @@ def load_games_from_json():
                     db.session.add(game)
                     added_count += 1
                     
-                    # Commit in batches
                     if added_count % 50 == 0:
                         db.session.commit()
                 
@@ -71,6 +73,10 @@ def load_games_from_json():
             db.session.commit()
             print(f"✅ Loaded {added_count} games into database")
         
+        except FileNotFoundError:
+            print(f"⚠️  Could not load games: {json_file} not found")
+        except json.JSONDecodeError:
+            print(f"⚠️  Could not load games: {json_file} is not valid JSON")
         except Exception as e:
             print(f"⚠️  Could not load games: {str(e)}")
 
@@ -79,10 +85,13 @@ def load_games_from_json():
 # UTILITIES & DECORATORS
 # ============================================================================
 def get_current_user():
-    """Get the current user from session (simplified - use proper auth in production)."""
+    """Get the current user from request args or form."""
     user_id = request.args.get('user_id') or request.form.get('user_id')
     if user_id:
-        return UserProfile.query.get(int(user_id))
+        try:
+            return UserProfile.query.get(int(user_id))
+        except (ValueError, TypeError):
+            return None
     return None
 
 
@@ -99,33 +108,87 @@ def require_user(f):
 
 
 # ============================================================================
+# VENUE MANAGEMENT
+# ============================================================================
+@app.route('/admin/venue', methods=['GET', 'POST'])
+def manage_venue():
+    """Admin: Manage venue capacity and settings."""
+    try:
+        venue = VenueConfig.get_or_create()
+        
+        if request.method == 'POST':
+            try:
+                venue.max_capacity = max(1, request.form.get('max_capacity', type=int, default=20))
+                venue.max_tables = max(1, request.form.get('max_tables', type=int, default=5))
+                venue.operating_hours_start = request.form.get('hours_start', type=int, default=10)
+                venue.operating_hours_end = request.form.get('hours_end', type=int, default=22)
+                db.session.commit()
+                
+                flash(f'Venue updated: {venue.max_capacity} max capacity', 'success')
+                return redirect(url_for('manage_venue'))
+            except ValueError as e:
+                flash(f'Invalid input: {str(e)}', 'error')
+        
+        current_occupancy = venue.get_current_occupancy()
+        occupancy_percent = int((current_occupancy / venue.max_capacity) * 100) if venue.max_capacity > 0 else 0
+        
+        return render_template(
+            'venue_config.html',
+            venue=venue,
+            current_occupancy=current_occupancy,
+            occupancy_percent=occupancy_percent
+        )
+    except Exception as e:
+        flash(f'Error managing venue: {str(e)}', 'error')
+        return redirect(url_for('dashboard'))
+
+
+@app.route('/api/venue/status')
+def api_venue_status():
+    """API: Get current venue occupancy status."""
+    try:
+        venue = VenueConfig.get_or_create()
+        current_occupancy = venue.get_current_occupancy()
+        max_cap = venue.max_capacity if venue.max_capacity > 0 else 1
+        
+        return jsonify({
+            'max_capacity': venue.max_capacity,
+            'current_occupancy': current_occupancy,
+            'available_capacity': venue.available_capacity(),
+            'occupancy_percent': int((current_occupancy / max_cap) * 100),
+            'active_sessions': SessionLobby.query.filter_by(status=SessionStatus.ACTIVE.value).count(),
+            'recruiting_sessions': SessionLobby.query.filter_by(status=SessionStatus.RECRUITING.value).count()
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================================================
 # AUTHENTICATION & USER PROFILES
 # ============================================================================
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Simple login page (simplified - use proper OAuth/JWT in production)."""
+    """Simple login page."""
     if request.method == 'POST':
-        username = request.form.get('username')
+        username = request.form.get('username', '').strip()
         
         if not username or len(username) < 3:
             flash('Username must be at least 3 characters', 'error')
             return redirect(url_for('login'))
         
-        user = UserProfile.query.filter_by(username=username).first()
-        
-        if not user:
-            # Auto-create user if doesn't exist (simplified flow)
-            try:
+        try:
+            user = UserProfile.query.filter_by(username=username).first()
+            
+            if not user:
                 user = UserProfile(username=username)
                 db.session.add(user)
                 db.session.commit()
                 flash(f'Welcome {username}!', 'success')
-            except Exception as e:
-                flash(f'Error creating user: {str(e)}', 'error')
-                return redirect(url_for('login'))
-        
-        # Redirect to dashboard with user_id
-        return redirect(url_for('dashboard', user_id=user.id))
+            
+            return redirect(url_for('dashboard', user_id=user.id))
+        except Exception as e:
+            flash(f'Error logging in: {str(e)}', 'error')
+            return redirect(url_for('login'))
     
     return render_template('login.html')
 
@@ -133,23 +196,31 @@ def login():
 @app.route('/profile/<int:user_id>')
 def profile(user_id):
     """View user profile and credit history."""
-    user = UserProfile.query.get_or_404(user_id)
-    transactions = CreditTransaction.query.filter_by(user_id=user_id).order_by(
-        CreditTransaction.created_at.desc()
-    ).limit(20).all()
-    
-    recent_sessions = SessionParticipant.query.filter_by(user_id=user_id).all()
-    
-    return render_template(
-        'profile.html', 
-        user=user, 
-        transactions=transactions,
-        recent_sessions=recent_sessions
-    )
+    try:
+        user = UserProfile.query.get_or_404(user_id)
+        
+        transactions = CreditTransaction.query.filter_by(user_id=user_id).order_by(
+            CreditTransaction.created_at.desc()
+        ).limit(20).all()
+        
+        recent_sessions = SessionParticipant.query.filter_by(user_id=user_id).order_by(
+            SessionParticipant.joined_at.desc()
+        ).limit(10).all()
+        
+        return render_template(
+            'profile.html',
+            user=user,
+            transactions=transactions,
+            recent_sessions=recent_sessions,
+            user_id=user_id
+        )
+    except Exception as e:
+        flash(f'Error loading profile: {str(e)}', 'error')
+        return redirect(url_for('login'))
 
 
 # ============================================================================
-# DASHBOARD & MAIN VIEWS
+# MAIN VIEWS
 # ============================================================================
 @app.route('/')
 def index():
@@ -159,10 +230,15 @@ def index():
         return redirect(url_for('dashboard', user_id=user_id))
     return redirect(url_for('login'))
 
+
 @app.route('/dashboard')
 def dashboard():
     """Main dashboard showing cafe floor status."""
     user = get_current_user()
+    
+    if not user and not request.args.get('user_id'):
+        flash('Please log in first', 'error')
+        return redirect(url_for('login'))
     
     try:
         active_sessions = SessionLobby.query.filter_by(
@@ -172,7 +248,6 @@ def dashboard():
             status=SessionStatus.RECRUITING.value
         ).all()
         
-        # Provide a harmless example row if there are no sessions to show
         example_sessions = []
         if not recruiting_sessions and not active_sessions:
             example_sessions = [{
@@ -182,7 +257,6 @@ def dashboard():
                 'status': SessionStatus.RECRUITING.value
             }]
         
-        # Get stats for the current user
         user_stats = None
         if user:
             user_stats = {
@@ -198,7 +272,8 @@ def dashboard():
             recruiting=recruiting_sessions,
             example_sessions=example_sessions,
             user=user,
-            user_stats=user_stats
+            user_stats=user_stats,
+            user_id=request.args.get('user_id')
         )
     except Exception as e:
         flash(f'Error loading dashboard: {str(e)}', 'error')
@@ -209,11 +284,11 @@ def dashboard():
 def library():
     """Staff view of the physical game shelf."""
     try:
-        games = Game.query.all()
-        return render_template('library.html', games=games)
+        games = Game.query.order_by(Game.created_at.desc()).all()
+        return render_template('library.html', games=games, user_id=request.args.get('user_id'))
     except Exception as e:
         flash(f'Error loading library: {str(e)}', 'error')
-        return render_template('library.html', games=[])
+        return render_template('library.html', games=[], user_id=request.args.get('user_id'))
 
 
 @app.route('/game/<int:game_id>')
@@ -221,42 +296,79 @@ def game_details(game_id):
     """Detailed view of a single game."""
     try:
         game = Game.query.get_or_404(game_id)
-        user_id = request.args.get('user_id')
-        
-        # Get active sessions for this game
         active_lobbies = SessionLobby.query.filter_by(
             game_id=game_id,
             status=SessionStatus.RECRUITING.value
         ).all()
         
-        return render_template('game_details.html', game=game, lobbies=active_lobbies, user_id=user_id)
+        return render_template(
+            'game_details.html',
+            game=game,
+            lobbies=active_lobbies,
+            user_id=request.args.get('user_id')
+        )
     except Exception as e:
         flash(f'Error loading game details: {str(e)}', 'error')
-        user_id = request.args.get('user_id')
-        return redirect(url_for('library', user_id=user_id))
+        return redirect(url_for('library', user_id=request.args.get('user_id')))
 
 
 # ============================================================================
-# STAFF CONTROLS - Shelf Management
+# GAME MANAGEMENT
 # ============================================================================
 @app.route('/toggle_game/<int:game_id>', methods=['POST'])
 def toggle_game(game_id):
-    """Toggle game availability status (staff only)."""
+    """Toggle game availability status."""
     try:
         game = Game.query.get_or_404(game_id)
         game.is_available = not game.is_available
         db.session.commit()
         
         flash(f'Game "{game.title}" availability updated', 'success')
-        return redirect(url_for('library'))
+        return redirect(url_for('library', user_id=request.args.get('user_id')))
     except Exception as e:
         flash(f'Error updating game: {str(e)}', 'error')
-        return redirect(url_for('library'))
+        return redirect(url_for('library', user_id=request.args.get('user_id')))
 
 
 # ============================================================================
-# LFG SESSION MANAGEMENT
+# SESSION MANAGEMENT
 # ============================================================================
+@app.route('/session/<int:session_id>')
+def view_session(session_id):
+    """View details of a specific session."""
+    try:
+        user = get_current_user()
+        session = SessionLobby.query.get_or_404(session_id)
+        
+        if not session.game:
+            flash('Game information unavailable', 'error')
+            return redirect(url_for('dashboard', user_id=request.args.get('user_id')))
+        
+        session_info = {
+            'can_join': session.status == SessionStatus.RECRUITING.value and not session.is_full,
+            'is_participant': user and any(p.user_id == user.id for p in session.participants),
+            'is_host': user and user.id == session.host_id,
+            'time_remaining': session.time_remaining_minutes if session.status == SessionStatus.ACTIVE.value else None,
+            'is_overdue': session.is_overdue,
+            'estimated_end_time': session.estimated_end_time,
+            'session_duration': session.estimated_duration_minutes
+        }
+        
+        return render_template(
+            'view_session.html',
+            session=session,
+            user=user,
+            user_id=request.args.get('user_id'),
+            session_info=session_info
+        )
+    except Exception as e:
+        flash(f'Error loading session: {str(e)}', 'error')
+        user_id = request.args.get('user_id')
+        if user_id:
+            return redirect(url_for('dashboard', user_id=user_id))
+        return redirect(url_for('login'))
+
+
 @app.route('/session/create', methods=['GET', 'POST'])
 @require_user
 def create_session(user):
@@ -265,66 +377,63 @@ def create_session(user):
         if request.method == 'POST':
             game_id = request.form.get('game_id', type=int)
             slots_total = request.form.get('slots_total', type=int, default=4)
+            estimated_duration = request.form.get('estimated_duration_minutes', type=int)
             
-            # Validation
             user_id = request.form.get('user_id')
-            if not game_id or not Game.query.get(game_id):
+            
+            game = Game.query.get(game_id)
+            if not game:
                 flash('Invalid game selected', 'error')
-                games = Game.query.all()  # Show all games on error
+                games = Game.query.all()
                 return render_template('create_session.html', games=games, user_id=user_id)
             
             if slots_total < 2 or slots_total > 10:
                 flash('Players must be between 2 and 10', 'error')
-                games = Game.query.all()  # Show all games on error
+                games = Game.query.all()
                 return render_template('create_session.html', games=games, user_id=user_id)
             
-            # Create session with current user as host
+            venue = VenueConfig.get_or_create()
+            if not venue.can_accommodate(slots_total):
+                flash(f'Venue capacity exceeded. Only {venue.available_capacity()} seats available', 'error')
+                games = Game.query.all()
+                return render_template('create_session.html', games=games, user_id=user_id)
+            
             session = SessionLobby(
                 game_id=game_id,
                 slots_total=slots_total,
-                slots_filled=1,  # Host counts as 1 player
+                slots_filled=1,
                 status=SessionStatus.RECRUITING.value,
-                host_id=user.id
+                host_id=user.id,
+                estimated_duration_minutes=estimated_duration or (game.estimated_playtime_minutes or 60)
             )
             db.session.add(session)
-            db.session.flush()  # Get session.id without committing
+            db.session.flush()
             
-            # Add host as first participant
             participant = SessionParticipant(session_id=session.id, user_id=user.id)
             session.participants.append(participant)
             
             db.session.commit()
             
-            flash(f'Session created for {Game.query.get(game_id).title}!', 'success')
-            return redirect(url_for('view_session', session_id=session.id) + f'?user_id={user.id}')
+            flash(f'Session created for {game.title}!', 'success')
+            return redirect(url_for('view_session', session_id=session.id, user_id=user.id))
         
-        # GET request - show available games first, fall back to all if none available
         games = Game.query.filter_by(is_available=True).all()
         if not games:
             games = Game.query.all()
-        user_id = request.args.get('user_id')
-        return render_template('create_session.html', games=games, user=user, user_id=user_id)
+        
+        venue = VenueConfig.get_or_create()
+        
+        return render_template(
+            'create_session.html',
+            games=games,
+            user=user,
+            user_id=request.args.get('user_id'),
+            available_capacity=venue.available_capacity()
+        )
     
     except Exception as e:
         flash(f'Error creating session: {str(e)}', 'error')
-        return redirect(url_for('dashboard') + f'?user_id={user.id}')
-
-
-@app.route('/session/<int:session_id>')
-def view_session(session_id):
-    """View details of a specific session."""
-    try:
-        user = get_current_user()
-        session = SessionLobby.query.get_or_404(session_id)
-        user_id = request.args.get('user_id')
-        
-        return render_template('view_session.html', session=session, user=user, user_id=user_id)
-    except Exception as e:
-        flash(f'Error loading session: {str(e)}', 'error')
-        user_id = request.args.get('user_id')
-        if user_id:
-            return redirect(url_for('dashboard', user_id=user_id))
-        return redirect(url_for('login'))
+        return redirect(url_for('dashboard', user_id=user.id))
 
 
 @app.route('/session/<int:session_id>/join', methods=['POST'])
@@ -334,33 +443,30 @@ def join_session(session_id, user):
     try:
         session = SessionLobby.query.get_or_404(session_id)
         
-        # Validation
         if session.status != SessionStatus.RECRUITING.value:
             flash('This session is not recruiting', 'error')
-            return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
+            return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
         
         if session.is_full:
             flash('Session is full', 'error')
-            return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
+            return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
         
-        # Check if user already in session
         if any(p.user_id == user.id for p in session.participants):
             flash('You are already in this session', 'warning')
-            return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
+            return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
         
-        # Add participant
         session.add_participant(user)
         db.session.commit()
         
-        flash(f'Joined session! {session.slots_remaining} slot(s) remaining', 'success')
-        return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
+        flash('Joined session!', 'success')
+        return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
     
     except ValueError as e:
         flash(f'Cannot join: {str(e)}', 'error')
-        return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
+        return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
     except Exception as e:
         flash(f'Error joining session: {str(e)}', 'error')
-        return redirect(url_for('dashboard') + f'?user_id={user.id}')
+        return redirect(url_for('dashboard', user_id=user.id))
 
 
 @app.route('/session/<int:session_id>/leave', methods=['POST'])
@@ -370,108 +476,98 @@ def leave_session(session_id, user):
     try:
         session = SessionLobby.query.get_or_404(session_id)
         
-        # Cannot leave if hosting
-        if session.host_id == user.id:
-            flash('Hosts cannot leave their own session. Cancel it instead.', 'warning')
-            return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
+        if session.host_id == user.id and session.status == SessionStatus.ACTIVE.value:
+            flash('Host cannot leave an active session', 'error')
+            return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
         
         session.remove_participant(user)
         db.session.commit()
         
         flash('Left session', 'success')
-        return redirect(url_for('dashboard') + f'?user_id={user.id}')
+        return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
     
     except Exception as e:
         flash(f'Error leaving session: {str(e)}', 'error')
-        return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
+        return redirect(url_for('dashboard', user_id=user.id))
 
 
 @app.route('/session/<int:session_id>/start', methods=['POST'])
 @require_user
 def start_session(session_id, user):
-    """Start an active session (host only)."""
+    """Start a session."""
     try:
         session = SessionLobby.query.get_or_404(session_id)
         
-        # Validation
         if session.host_id != user.id:
             flash('Only the host can start the session', 'error')
-            return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
+            return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
         
         if not session.can_start:
             flash(f'Need at least 2 players. Currently {session.slots_filled}', 'error')
-            return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
+            return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
+        
+        venue = VenueConfig.get_or_create()
+        if not venue.can_accommodate(session.slots_filled):
+            flash(f'Cannot start: Venue at capacity. Only {venue.available_capacity()} seats available', 'error')
+            return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
         
         session.status = SessionStatus.ACTIVE.value
         session.started_at = datetime.utcnow()
         db.session.commit()
         
         flash('Session started! Have fun!', 'success')
-        return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
+        return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
     
     except Exception as e:
         flash(f'Error starting session: {str(e)}', 'error')
-        return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
+        return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
 
 
 @app.route('/session/<int:session_id>/complete', methods=['POST'])
 @require_user
 def complete_session(session_id, user):
-    """Complete a session and award credits (host only)."""
+    """Complete a session and award credits."""
     try:
         session = SessionLobby.query.get_or_404(session_id)
         
-        # Validation
         if session.host_id != user.id:
             flash('Only the host can complete the session', 'error')
-            return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
+            return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
         
         session.complete_session()
         db.session.commit()
         
         flash('Session completed! Credits awarded to all participants.', 'success')
-        return redirect(url_for('dashboard') + f'?user_id={user.id}')
+        return redirect(url_for('dashboard', user_id=user.id))
     
     except ValueError as e:
         flash(f'Cannot complete: {str(e)}', 'error')
-        return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
+        return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
     except Exception as e:
         flash(f'Error completing session: {str(e)}', 'error')
-        return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
+        return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
 
 
 @app.route('/session/<int:session_id>/cancel', methods=['POST'])
 @require_user
 def cancel_session(session_id, user):
-    """Cancel a session (host only)."""
+    """Cancel a session."""
     try:
         session = SessionLobby.query.get_or_404(session_id)
         
-        # Validation
         if session.host_id != user.id:
             flash('Only the host can cancel the session', 'error')
-            return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
+            return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
         
         session.status = SessionStatus.CANCELLED.value
-        
-        # Penalize host for cancellation
-        user.reliability_streak = max(0, user.reliability_streak - 2)
-        transaction = CreditTransaction(
-            user_id=user.id,
-            amount=-5,
-            transaction_type='SESSION_CANCELLED',
-            description=f'Session #{session_id} cancelled by host'
-        )
-        user.credit_balance -= 5
-        db.session.add(transaction)
         db.session.commit()
         
-        flash('Session cancelled. Penalty applied.', 'warning')
-        return redirect(url_for('dashboard') + f'?user_id={user.id}')
+        flash('Session cancelled', 'success')
+        return redirect(url_for('dashboard', user_id=user.id))
     
     except Exception as e:
         flash(f'Error cancelling session: {str(e)}', 'error')
-        return redirect(url_for('view_session', session_id=session_id) + f'?user_id={user.id}')
+        return redirect(url_for('view_session', session_id=session_id, user_id=user.id))
 
 
 # ============================================================================
@@ -486,15 +582,19 @@ def credits():
         flash('Please log in first', 'error')
         return redirect(url_for('login'))
     
-    transactions = CreditTransaction.query.filter_by(user_id=user.id).order_by(
-        CreditTransaction.created_at.desc()
-    ).limit(50).all()
-    
-    return render_template('credits.html', user=user, transactions=transactions)
+    try:
+        transactions = CreditTransaction.query.filter_by(user_id=user.id).order_by(
+            CreditTransaction.created_at.desc()
+        ).limit(50).all()
+        
+        return render_template('credits.html', user=user, transactions=transactions, user_id=request.args.get('user_id'))
+    except Exception as e:
+        flash(f'Error loading credits: {str(e)}', 'error')
+        return redirect(url_for('dashboard', user_id=user.id))
 
 
 # ============================================================================
-# API ENDPOINTS (for AJAX requests)
+# API ENDPOINTS
 # ============================================================================
 @app.route('/api/sessions')
 def api_sessions():
@@ -506,8 +606,8 @@ def api_sessions():
         
         data = [{
             'id': s.id,
-            'game': s.game.title,
-            'host': s.host.username,
+            'game': s.game.title if s.game else 'Unknown',
+            'host': s.host.username if s.host else 'Unknown',
             'slots_filled': s.slots_filled,
             'slots_total': s.slots_total,
             'created_at': s.created_at.isoformat()
@@ -566,6 +666,9 @@ def inject_user():
     return {'current_user': get_current_user()}
 
 
+# ============================================================================
+# APPLICATION ENTRY POINT
+# ============================================================================
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container" style="max-width: 800px;">
+    <h2 style="color: #2c3e50; margin-bottom: 2rem;">⚙️ Venue Configuration</h2>
+
+    <!-- Live Occupancy Status -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); border-top: 4px solid #3498db;">
+            <p style="color: #7f8c8d; font-size: 0.9rem; margin: 0;">Max Capacity</p>
+            <h3 style="color: #2c3e50; margin: 0.5rem 0 0 0; font-size: 2rem;">{{ venue.max_capacity }}</h3>
+        </div>
+        
+        <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); border-top: 4px solid #27ae60;">
+            <p style="color: #7f8c8d; font-size: 0.9rem; margin: 0;">Current Occupancy</p>
+            <h3 style="color: #2c3e50; margin: 0.5rem 0 0 0; font-size: 2rem;">{{ current_occupancy }}</h3>
+        </div>
+        
+        <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); border-top: 4px solid #f39c12;">
+            <p style="color: #7f8c8d; font-size: 0.9rem; margin: 0;">Available</p>
+            <h3 style="color: #2c3e50; margin: 0.5rem 0 0 0; font-size: 2rem;">{{ venue.max_capacity - current_occupancy }}</h3>
+        </div>
+    </div>
+
+    <!-- Occupancy Bar -->
+    <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); margin-bottom: 2rem;">
+        <p style="color: #2c3e50; font-weight: 600; margin: 0 0 1rem 0;">Occupancy: {{ occupancy_percent }}%</p>
+        <div style="background: #ecf0f1; border-radius: 8px; overflow: hidden; height: 30px;">
+            <div style="background: {% if occupancy_percent > 80 %}#e74c3c{% elif occupancy_percent > 50 %}#f39c12{% else %}#27ae60{% endif %}; width: {{ occupancy_percent }}%; height: 100%; transition: width 0.3s;">
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration Form -->
+    <div style="background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); margin-bottom: 2rem;">
+        <h3 style="color: #2c3e50; margin-top: 0;">Update Settings</h3>
+        
+        <form method="POST">
+            <div style="margin-bottom: 1.5rem;">
+                <label for="max_capacity" style="display: block; font-weight: 600; color: #2c3e50; margin-bottom: 0.5rem;">
+                    Maximum Capacity (players)
+                </label>
+                <input type="number" id="max_capacity" name="max_capacity" value="{{ venue.max_capacity }}" min="1" max="100"
+                       style="width: 100%; padding: 0.75rem; border: 1px solid #ecf0f1; border-radius: 8px; font-size: 1rem;">
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label for="max_tables" style="display: block; font-weight: 600; color: #2c3e50; margin-bottom: 0.5rem;">
+                    Maximum Simultaneous Sessions
+                </label>
+                <input type="number" id="max_tables" name="max_tables" value="{{ venue.max_tables }}" min="1" max="20"
+                       style="width: 100%; padding: 0.75rem; border: 1px solid #ecf0f1; border-radius: 8px; font-size: 1rem;">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                <div>
+                    <label for="hours_start" style="display: block; font-weight: 600; color: #2c3e50; margin-bottom: 0.5rem;">
+                        Opening Hour
+                    </label>
+                    <input type="number" id="hours_start" name="hours_start" value="{{ venue.operating_hours_start }}" min="0" max="23"
+                           style="width: 100%; padding: 0.75rem; border: 1px solid #ecf0f1; border-radius: 8px; font-size: 1rem;">
+                </div>
+                <div>
+                    <label for="hours_end" style="display: block; font-weight: 600; color: #2c3e50; margin-bottom: 0.5rem;">
+                        Closing Hour
+                    </label>
+                    <input type="number" id="hours_end" name="hours_end" value="{{ venue.operating_hours_end }}" min="0" max="23"
+                           style="width: 100%; padding: 0.75rem; border: 1px solid #ecf0f1; border-radius: 8px; font-size: 1rem;">
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-success" style="width: 100%; padding: 1rem;">
+                💾 Save Changes
+            </button>
+        </form>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div style="padding: 1rem; border-radius: 8px; background: {% if category == 'error' %}#ffe0e0{% else %}#e0ffe0{% endif %}; color: {% if category == 'error' %}#c33{% else %}#33c33{% endif %}; margin-bottom: 1rem;">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
+{% endblock %}

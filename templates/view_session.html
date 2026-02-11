@@ -5,7 +5,22 @@
     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
         <div>
             <h2 style="color: #2c3e50; margin: 0;">🎲 {{ session.game.title if session.game else 'Unknown Game' }}</h2>
-            <p style="color: #7f8c8d; margin: 0.5rem 0 0 0;">Session #{{ session.id }} • {{ session.status }}</p>
+            <p style="color: #7f8c8d; margin: 0.5rem 0 0 0;">Session #{{ session.id }} • 
+                <span style="display: inline-block; padding: 0.25rem 0.75rem; border-radius: 20px; background: 
+                    {% if session.status == 'RECRUITING' %}#e8f4ff
+                    {% elif session.status == 'ACTIVE' %}#e8ffe8
+                    {% elif session.status == 'COMPLETED' %}#ffe8e8
+                    {% else %}#fff3cd
+                    {% endif %};
+                    color: 
+                    {% if session.status == 'RECRUITING' %}#3498db
+                    {% elif session.status == 'ACTIVE' %}#27ae60
+                    {% elif session.status == 'COMPLETED' %}#e74c3c
+                    {% else %}#f39c12
+                    {% endif %};">
+                    {{ session.status }}
+                </span>
+            </p>
         </div>
         <a href="{{ url_for('dashboard', user_id=request.args.get('user_id')) }}" class="btn btn-primary">← Dashboard</a>
     </div>
@@ -14,6 +29,7 @@
     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; margin-bottom: 2rem;">
         <!-- Left: Session Details -->
         <div>
+            <!-- Session Details Card -->
             <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); margin-bottom: 1.5rem;">
                 <h3 style="color: #2c3e50; margin-top: 0;">📋 Session Details</h3>
                 
@@ -22,30 +38,17 @@
                         <p style="color: #7f8c8d; font-size: 0.85rem; margin: 0;">Host</p>
                         <p style="color: #2c3e50; font-weight: 600; margin: 0.25rem 0 0 0;">
                             <a href="{{ url_for('profile', user_id=session.host.id) }}" style="color: #3498db; text-decoration: none;">
-                                {{ session.host.username }}
+                                👑 {{ session.host.username }}
                             </a>
                         </p>
                     </div>
                     <div>
                         <p style="color: #7f8c8d; font-size: 0.85rem; margin: 0;">Status</p>
-                        <p style="color: #2c3e50; font-weight: 600; margin: 0.25rem 0 0 0;">
-                            <span style="display: inline-block; padding: 0.25rem 0.75rem; border-radius: 20px; background: 
-                                {% if session.status == 'RECRUITING' %}#e8f4ff
-                                {% elif session.status == 'ACTIVE' %}#e8ffe8
-                                {% else %}#ffe8e8
-                                {% endif %};
-                                color: 
-                                {% if session.status == 'RECRUITING' %}#3498db
-                                {% elif session.status == 'ACTIVE' %}#27ae60
-                                {% else %}#e74c3c
-                                {% endif %};">
-                                {{ session.status }}
-                            </span>
-                        </p>
+                        <p style="color: #2c3e50; font-weight: 600; margin: 0.25rem 0 0 0;">{{ session.status }}</p>
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
                     <div>
                         <p style="color: #7f8c8d; font-size: 0.85rem; margin: 0;">Created</p>
                         <p style="color: #2c3e50; margin: 0.25rem 0 0 0; font-size: 0.9rem;">
@@ -53,19 +56,58 @@
                         </p>
                     </div>
                     <div>
-                        <p style="color: #7f8c8d; font-size: 0.85rem; margin: 0;">Game Image</p>
-                        {% if session.game and session.game.image_url %}
-                            <img src="{{ session.game.image_url }}" alt="{{ session.game.title }}" 
-                                 style="width: 100%; height: auto; border-radius: 8px; margin-top: 0.5rem; max-height: 150px; object-fit: cover;">
-                        {% else %}
-                            <img src="https://via.placeholder.com/200x150?text=No+Image" alt="No image" 
-                                 style="width: 100%; height: auto; border-radius: 8px; margin-top: 0.5rem; max-height: 150px; object-fit: cover;">
-                        {% endif %}
+                        <p style="color: #7f8c8d; font-size: 0.85rem; margin: 0;">Scheduled Time</p>
+                        <p style="color: #2c3e50; margin: 0.25rem 0 0 0; font-size: 0.9rem;">
+                            {% if session.scheduled_start_time %}
+                                {{ session.scheduled_start_time.strftime('%b %d, %H:%M') }}
+                            {% else %}
+                                Not scheduled
+                            {% endif %}
+                        </p>
                     </div>
                 </div>
+
+                <!-- Time Info for Active Sessions -->
+                {% if session.status == 'ACTIVE' %}
+                    <div style="background: #f0f4ff; padding: 1rem; border-radius: 8px; border-left: 4px solid #3498db; margin-bottom: 1rem;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div>
+                                <p style="color: #7f8c8d; font-size: 0.85rem; margin: 0;">Started</p>
+                                <p style="color: #2c3e50; font-weight: 600; margin: 0.25rem 0 0 0;">
+                                    {{ session.started_at.strftime('%H:%M') }}
+                                </p>
+                            </div>
+                            <div>
+                                <p style="color: #7f8c8d; font-size: 0.85rem; margin: 0;">Estimated End</p>
+                                <p style="color: {% if session_info.is_overdue %}#e74c3c{% else %}#27ae60{% endif %}; font-weight: 600; margin: 0.25rem 0 0 0;">
+                                    {% if session_info.estimated_end_time %}
+                                        {{ session_info.estimated_end_time.strftime('%H:%M') }}
+                                        {% if session_info.is_overdue %}
+                                            <span style="font-size: 0.85rem;"> (Overdue)</span>
+                                        {% else %}
+                                            <span style="font-size: 0.85rem;"> (~{{ session_info.time_remaining }} min)</span>
+                                        {% endif %}
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        <p style="color: #7f8c8d; font-size: 0.85rem; margin: 0.5rem 0 0 0;">
+                            Estimated duration: {{ session.estimated_duration_minutes }} minutes
+                        </p>
+                    </div>
+                {% endif %}
+
+                <!-- Game Image -->
+                {% if session.game and session.game.image_url %}
+                    <img src="{{ session.game.image_url }}" alt="{{ session.game.title }}" 
+                         style="width: 100%; height: auto; border-radius: 8px; margin-top: 1rem; max-height: 200px; object-fit: cover;">
+                {% else %}
+                    <img src="https://via.placeholder.com/400x150?text=No+Image" alt="No image" 
+                         style="width: 100%; height: auto; border-radius: 8px; margin-top: 1rem; max-height: 150px; object-fit: cover;">
+                {% endif %}
             </div>
 
-            <!-- Participants -->
+            <!-- Participants Card -->
             <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
                 <h3 style="color: #2c3e50; margin-top: 0;">👥 Participants ({{ session.slots_filled }}/{{ session.slots_total }})</h3>
                 
@@ -88,9 +130,12 @@
                                         </p>
                                     </div>
                                 </div>
-                                <p style="color: #7f8c8d; font-size: 0.9rem; margin: 0;">
-                                    💰 {{ participant.user.credit_balance }}
-                                </p>
+                                <div style="text-align: right;">
+                                    <p style="color: #7f8c8d; font-size: 0.85rem; margin: 0;">Credits</p>
+                                    <p style="color: #2c3e50; font-weight: 600; margin: 0.25rem 0 0 0;">
+                                        💰 {{ participant.user.credit_balance }}
+                                    </p>
+                                </div>
                             </div>
                         {% endfor %}
                     {% else %}
@@ -104,16 +149,16 @@
         <div>
             <!-- Player Count Card -->
             <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); margin-bottom: 1.5rem; text-align: center; border-top: 4px solid #3498db;">
+                <p style="color: #7f8c8d; font-size: 0.9rem; margin: 0;">Players</p>
                 <h2 style="color: #3498db; margin: 0 0 0.5rem 0; font-size: 2.5rem;">{{ session.slots_filled }}/{{ session.slots_total }}</h2>
-                <p style="color: #7f8c8d; margin: 0;">Players</p>
                 {% if session.slots_remaining > 0 %}
-                    <p style="color: #27ae60; font-size: 0.9rem; margin: 0.5rem 0 0 0;">{{ session.slots_remaining }} slots available</p>
+                    <p style="color: #27ae60; font-size: 0.9rem; margin: 0;">{{ session.slots_remaining }} slots available</p>
                 {% else %}
-                    <p style="color: #e74c3c; font-size: 0.9rem; margin: 0.5rem 0 0 0;">Session is full</p>
+                    <p style="color: #e74c3c; font-size: 0.9rem; margin: 0;">Session is full</p>
                 {% endif %}
             </div>
 
-            <!-- Action Buttons -->
+            <!-- Actions Card -->
             <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
                 <h3 style="color: #2c3e50; margin-top: 0; font-size: 1rem;">Actions</h3>
 
@@ -123,7 +168,6 @@
                         <!-- Host Actions -->
                         {% if session.status == 'RECRUITING' %}
                             <form method="POST" action="{{ url_for('start_session', session_id=session.id) }}" style="margin-bottom: 0.75rem;">
-                                <input type="hidden" name="user_id" value="{{ user_id }}">
                                 <button type="submit" class="btn btn-success" style="width: 100%; text-align: center;">
                                     ▶️ Start Session
                                 </button>
@@ -132,7 +176,6 @@
 
                         {% if session.status == 'ACTIVE' %}
                             <form method="POST" action="{{ url_for('complete_session', session_id=session.id) }}" style="margin-bottom: 0.75rem;">
-                                <input type="hidden" name="user_id" value="{{ user_id }}">
                                 <button type="submit" class="btn btn-success" style="width: 100%; text-align: center;">
                                     ✓ Complete Session
                                 </button>
@@ -141,7 +184,6 @@
 
                         {% if session.status in ['RECRUITING', 'ACTIVE'] %}
                             <form method="POST" action="{{ url_for('cancel_session', session_id=session.id) }}">
-                                <input type="hidden" name="user_id" value="{{ user_id }}">
                                 <button type="submit" class="btn btn-danger" style="width: 100%; text-align: center;">
                                     ✗ Cancel Session
                                 </button>
@@ -151,19 +193,27 @@
                         <!-- Participant Actions -->
                         {% set participant_user_ids = session.participants | map(attribute='user_id') | list %}
                         {% if user and user.id in participant_user_ids %}
-                            <form method="POST" action="{{ url_for('leave_session', session_id=session.id) }}">
-                                <input type="hidden" name="user_id" value="{{ user_id }}">
-                                <button type="submit" class="btn btn-danger" style="width: 100%; text-align: center;">
-                                    👋 Leave Session
-                                </button>
-                            </form>
+                            {% if session.status == 'ACTIVE' %}
+                                <p style="color: #27ae60; text-align: center; margin: 0; font-weight: 500;">✓ You are playing</p>
+                            {% else %}
+                                <form method="POST" action="{{ url_for('leave_session', session_id=session.id) }}">
+                                    <button type="submit" class="btn btn-danger" style="width: 100%; text-align: center;">
+                                        👋 Leave Session
+                                    </button>
+                                </form>
+                            {% endif %}
                         {% elif session.status == 'RECRUITING' and not session.is_full %}
-                            <form method="POST" action="{{ url_for('join_session', session_id=session.id) }}">
-                                <input type="hidden" name="user_id" value="{{ user_id }}">
-                                <button type="submit" class="btn btn-primary" style="width: 100%; text-align: center;">
-                                    🎮 Join Session
-                                </button>
-                            </form>
+                            {% if user.can_join_session() %}
+                                <form method="POST" action="{{ url_for('join_session', session_id=session.id) }}">
+                                    <button type="submit" class="btn btn-primary" style="width: 100%; text-align: center;">
+                                        🎮 Join Session
+                                    </button>
+                                </form>
+                            {% else %}
+                                <p style="color: #e74c3c; text-align: center; margin: 0; font-size: 0.9rem;">
+                                    ✗ Credit balance too low (need > -50)
+                                </p>
+                            {% endif %}
                         {% else %}
                             <p style="color: #7f8c8d; text-align: center; margin: 0; font-size: 0.85rem;">
                                 {% if session.status != 'RECRUITING' %}
@@ -181,6 +231,18 @@
                         <a href="{{ url_for('login') }}" style="color: #3498db;">Login to join</a>
                     </p>
                 {% endif %}
+            </div>
+
+            <!-- Session Info Card -->
+            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; margin-top: 1.5rem; border-left: 4px solid #3498db;">
+                <h4 style="color: #2c3e50; margin-top: 0;">ℹ️ Session Info</h4>
+                <ul style="color: #7f8c8d; font-size: 0.9rem; line-height: 1.8; margin: 0; padding-left: 1.5rem;">
+                    <li>Status: <strong>{{ session.status }}</strong></li>
+                    <li>Duration: <strong>{{ session.estimated_duration_minutes }} min</strong></li>
+                    {% if session.status == 'ACTIVE' %}
+                        <li>{% if session_info.is_overdue %}⏰ Overtime{% else %}{{ session_info.time_remaining }} min remaining{% endif %}</li>
+                    {% endif %}
+                </ul>
             </div>
         </div>
     </div>
