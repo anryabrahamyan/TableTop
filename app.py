@@ -220,27 +220,50 @@ def api_venue_status():
 # ============================================================================
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Simple login page."""
+    """Secure login page with Password/Trusted Identity."""
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
         phone_number = request.form.get('phone_number', '').strip()
         
         if not username or len(username) < 3:
             flash('Username must be at least 3 characters', 'error')
             return redirect(url_for('login'))
         
+        if not password:
+            flash('Password is required', 'error')
+            return redirect(url_for('login'))
+        
         try:
             user = UserProfile.query.filter_by(username=username).first()
             
             if not user:
+                # REGISTER NEW USER
                 user = UserProfile(username=username, phone_number=phone_number)
+                user.set_password(password)
                 db.session.add(user)
                 db.session.commit()
-                flash(f'Welcome {username}!', 'success')
+                flash(f'Welcome {username}! Account created.', 'success')
             else:
-                if phone_number:
+                # LOGIN EXISTING USER
+                # Compatibility: If user has no password set (legacy), allow them to set it?
+                # For this implementation, if no password set, we'll set it now (Lazy Migration for Demo)
+                if not user.password_hash:
+                    user.set_password(password)
+                    if phone_number:
+                        user.phone_number = phone_number
+                    db.session.commit()
+                    flash(f'Security Update: Password set for {username}.', 'success')
+                
+                elif not user.check_password(password):
+                    flash('Invalid password', 'error')
+                    return redirect(url_for('login'))
+                
+                # Update phone if provided
+                if phone_number and user.phone_number != phone_number:
                     user.phone_number = phone_number
                     db.session.commit()
+                
                 flash(f'Welcome back {username}!', 'success')
             
             # Store user in session
