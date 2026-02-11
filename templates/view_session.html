@@ -22,7 +22,7 @@
                 </span>
             </p>
         </div>
-        <a href="{{ url_for('dashboard', user_id=request.args.get('user_id')) }}" class="btn btn-primary">← Dashboard</a>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary">← Dashboard</a>
     </div>
 
     <!-- Main Session Info -->
@@ -162,9 +162,8 @@
             <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
                 <h3 style="color: #2c3e50; margin-top: 0; font-size: 1rem;">Actions</h3>
 
-                {% set user_id = request.args.get('user_id') %}
-                {% if user %}
-                    {% if user.id == session.host_id %}
+                {% if current_user %}
+                    {% if current_user.id == session.host_id %}
                         <!-- Host Actions -->
                         {% if session.status == 'RECRUITING' %}
                             <form method="POST" action="{{ url_for('start_session', session_id=session.id) }}" style="margin-bottom: 0.75rem;">
@@ -192,7 +191,7 @@
                     {% else %}
                         <!-- Participant Actions -->
                         {% set participant_user_ids = session.participants | map(attribute='user_id') | list %}
-                        {% if user and user.id in participant_user_ids %}
+                        {% if current_user.id in participant_user_ids %}
                             {% if session.status == 'ACTIVE' %}
                                 <p style="color: #27ae60; text-align: center; margin: 0; font-weight: 500;">✓ You are playing</p>
                             {% else %}
@@ -203,7 +202,7 @@
                                 </form>
                             {% endif %}
                         {% elif session.status == 'RECRUITING' and not session.is_full %}
-                            {% if user.can_join_session() %}
+                            {% if current_user.can_join_session() %}
                                 <form method="POST" action="{{ url_for('join_session', session_id=session.id) }}">
                                     <button type="submit" class="btn btn-primary" style="width: 100%; text-align: center;">
                                         🎮 Join Session

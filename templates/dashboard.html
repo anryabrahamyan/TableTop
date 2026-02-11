@@ -1,11 +1,70 @@
 {% extends "base.html" %}
+
 {% block content %}
 <div class="container">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <h2 style="color: #2c3e50; margin: 0;">🏰 Cafe Floor Overview</h2>
-        <a href="{{ url_for('create_session', user_id=request.args.get('user_id')) }}" class="btn btn-primary">+ Create LFG Session</a>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h2 style="color: #2c3e50; margin: 0;">🏰 Cafe Floor Overview</h2>
+            <p style="color: #7f8c8d; margin: 0.5rem 0 0 0;">
+                {% if user_stats %}
+                    Welcome back, <strong>{{ current_user.username }}</strong>!
+                {% else %}
+                    Current sessions and availability
+                {% endif %}
+            </p>
+        </div>
+        {% if current_user %}
+            <div style="display: flex; gap: 1rem;">
+                <a href="{{ url_for('create_session') }}" class="btn btn-success">➕ Create LFG Session</a>
+            </div>
+        {% endif %}
     </div>
-    
+
+    <!-- User Stats -->
+    {% if current_user and user_stats %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+            <div style="background: white; padding: 1rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); text-align: center; border-top: 3px solid #3498db;">
+                <p style="color: #7f8c8d; font-size: 0.85rem; margin: 0;">Credits</p>
+                <h3 style="color: #2c3e50; margin: 0.5rem 0 0 0; font-size: 1.8rem;">{{ user_stats.credit_balance }}</h3>
+            </div>
+            <div style="background: white; padding: 1rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); text-align: center; border-top: 3px solid #27ae60;">
+                <p style="color: #7f8c8d; font-size: 0.85rem; margin: 0;">Completed</p>
+                <h3 style="color: #2c3e50; margin: 0.5rem 0 0 0; font-size: 1.8rem;">{{ user_stats.sessions_completed }}</h3>
+            </div>
+            <div style="background: white; padding: 1rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); text-align: center; border-top: 3px solid #f39c12;">
+                <p style="color: #7f8c8d; font-size: 0.85rem; margin: 0;">Reliability</p>
+                <h3 style="color: #2c3e50; margin: 0.5rem 0 0 0; font-size: 1.8rem;">{{ user_stats.reliability_streak }}</h3>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Active Sessions -->
+    <div class="section">
+        <h3>🎮 Active Tables</h3>
+        {% if active %}
+            <div class="lobby-grid">
+                {% for session in active %}
+                <div class="game-card">
+                    <div style="background: #27ae60; color: white; padding: 1rem; text-align: center;">
+                        <h4 style="margin: 0; color: white;">{{ session.game.title }}</h4>
+                    </div>
+                    <div class="game-card-content">
+                        <p><strong>Players:</strong> {{ session.slots_filled }}/{{ session.slots_total }}</p>
+                        <p><strong>Status:</strong> <span class="status-badge">ACTIVE</span></p>
+                        {% if session_info.time_remaining %}
+                            <p><strong>Time:</strong> {{ session.time_remaining_minutes }}m remaining</p>
+                        {% endif %}
+                        <a href="{{ url_for('view_session', session_id=session.id) }}" class="btn btn-primary" style="margin-top: auto; text-decoration: none;">👁️ View</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p style="color: #7f8c8d; padding: 2rem; text-align: center;">No active sessions right now.</p>
+        {% endif %}
+    </div>
+
+    <!-- Recruiting Sessions -->
     <div class="section">
         <h3>📢 Recruiting Lobbies</h3>
         {% if recruiting %}
@@ -13,12 +72,12 @@
                 {% for session in recruiting %}
                 <div class="game-card">
                     <div style="background: #3498db; color: white; padding: 1rem; text-align: center;">
-                        <h4 style="margin: 0; color: white;">{{ session.game.title if session.game else 'Unknown Game' }}</h4>
+                        <h4 style="margin: 0; color: white;">{{ session.game.title }}</h4>
                     </div>
                     <div class="game-card-content">
                         <p><strong>Players Needed:</strong> {{ session.slots_remaining }}/{{ session.slots_total }}</p>
                         <p><strong>Status:</strong> <span class="status-badge available">RECRUITING</span></p>
-                        <a href="{{ url_for('view_session', session_id=session.id, user_id=request.args.get('user_id')) }}" class="btn btn-success" style="margin-top: auto; text-decoration: none;">✓ Join Session</a>
+                        <a href="{{ url_for('view_session', session_id=session.id) }}" class="btn btn-success" style="margin-top: auto; text-decoration: none;">✓ View Session</a>
                     </div>
                 </div>
                 {% endfor %}
@@ -33,7 +92,7 @@
                     <div class="game-card-content">
                         <p><strong>Players Needed:</strong> {{ session.slots_remaining }}/{{ session.slots_total }}</p>
                         <p><strong>Status:</strong> <span class="status-badge">RECRUITING</span></p>
-                        <small style="color:#7f8c8d;">(Example data shown - create a game to get started!)</small>
+                        <small style="color:#7f8c8d;">(Example data shown)</small>
                     </div>
                 </div>
                 {% endfor %}
@@ -43,26 +102,14 @@
         {% endif %}
     </div>
 
-    <div class="section">
-        <h3>🎲 Active Tables</h3>
-        {% if active %}
-            <div class="lobby-grid">
-                {% for session in active %}
-                <div class="game-card">
-                    <div style="background: #27ae60; color: white; padding: 1rem; text-align: center;">
-                        <h4 style="margin: 0; color: white;">Table #{{ session.table_number or 'N/A' }}</h4>
-                    </div>
-                    <div class="game-card-content">
-                        <p><strong>Game:</strong> {{ session.game.title if session.game else 'Unknown Game' }}</p>
-                        <p><strong>Players:</strong> {{ session.slots_filled }}/{{ session.slots_total }}</p>
-                        <span class="status-badge available">In Progress</span>
-                    </div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div style="padding: 1rem; border-radius: 8px; background: {% if category == 'error' %}#ffe0e0{% else %}#e0ffe0{% endif %}; color: {% if category == 'error' %}#c33{% else %}#33c33{% endif %}; margin-top: 1rem;">
+                    {{ message }}
                 </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <p style="color: #7f8c8d; padding: 2rem; text-align: center;">No active tables right now.</p>
+            {% endfor %}
         {% endif %}
-    </div>
+    {% endwith %}
 </div>
 {% endblock %}

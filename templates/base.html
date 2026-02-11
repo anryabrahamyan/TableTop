@@ -14,17 +14,14 @@
     </header>
 
     <nav class="nav-bar">
-        {% set user_id = request.args.get('user_id') %}
-        {% if user_id %}
-            <a href="{{ url_for('dashboard', user_id=user_id) }}">🏰 Floor Overview</a>
-            <a href="{{ url_for('library', user_id=user_id) }}">📚 Game Library</a>
-            <a href="{{ url_for('credits', user_id=user_id) }}">💰 Credit Ledger</a>
-            <a href="{{ url_for('profile', user_id=user_id) }}">👤 User Profile</a>
+        {% if current_user %}
+            <a href="{{ url_for('dashboard') }}">🏰 Floor Overview</a>
+            <a href="{{ url_for('library') }}">📚 Game Library</a>
+            <a href="{{ url_for('credits') }}">💰 Credit Ledger</a>
+            <a href="{{ url_for('profile', user_id=current_user.id) }}">👤 User Profile</a>
+            <a href="{{ url_for('logout') }}" style="margin-left: auto;">🚪 Logout</a>
         {% else %}
-            <a href="{{ url_for('login') }}">🏰 Floor Overview</a>
-            <a href="{{ url_for('login') }}">📚 Game Library</a>
-            <a href="{{ url_for('login') }}">💰 Credit Ledger</a>
-            <a href="{{ url_for('login') }}">👤 User Profile</a>
+            <a href="{{ url_for('login') }}">🏰 Login</a>
         {% endif %}
     </nav>
 
