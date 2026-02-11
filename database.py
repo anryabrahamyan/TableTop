@@ -84,9 +84,9 @@ def init_db():
                         db.session.commit()
                         print(f"  → Loaded {games_loaded} games...")
                     
-                    # Limit to 10 for demo
-                    if games_loaded >= 100:
-                        break
+                    if games_loaded % 50 == 0:
+                        db.session.commit()
+                        print(f"  → Loaded {games_loaded} games...")
                 
                 except Exception as e:
                     print(f"  ⚠️  Skipping game: {str(e)}")
@@ -97,48 +97,56 @@ def init_db():
 
             # ===== 3. CREATE USERS =====
             print("👤 Creating Sample Users...")
-            users = [
-                UserProfile(
-                    username="Anri_Admin",
-                    email="admin@tabletop.local",
-                    phone_number="+1234567890",
-                    credit_balance=1000,
-                    reliability_streak=10,
-                    sessions_completed=25,
-                    sessions_cancelled=0
-                ),
-                UserProfile(
-                    username="Gamer_Guest",
-                    email="guest@tabletop.local",
-                    phone_number="+1987654321",
-                    credit_balance=250,
-                    reliability_streak=2,
-                    sessions_completed=5,
-                    sessions_cancelled=1
-                ),
-                UserProfile(
-                    username="Alice_Player",
-                    email="alice@tabletop.local",
-                    phone_number="+1122334455",
-                    credit_balance=100,
-                    reliability_streak=3,
-                    sessions_completed=8,
-                    sessions_cancelled=0
-                ),
-                UserProfile(
-                    username="Bob_Host",
-                    email="bob@tabletop.local",
-                    phone_number="+1555666777",
-                    credit_balance=500,
-                    reliability_streak=7,
-                    sessions_completed=15,
-                    sessions_cancelled=0
-                )
-            ]
+            
+            admin_user = UserProfile(
+                username="Anri_Admin",
+                email="admin@tabletop.local",
+                phone_number="+1234567890",
+                credit_balance=1000,
+                reliability_streak=10,
+                sessions_completed=25,
+                sessions_cancelled=0
+            )
+            admin_user.set_password("admin123")
+
+            guest_user = UserProfile(
+                username="Gamer_Guest",
+                email="guest@tabletop.local",
+                phone_number="+1987654321",
+                credit_balance=250,
+                reliability_streak=2,
+                sessions_completed=5,
+                sessions_cancelled=1
+            )
+            guest_user.set_password("guest123")
+
+            alice_user = UserProfile(
+                username="Alice_Player",
+                email="alice@tabletop.local",
+                phone_number="+1122334455",
+                credit_balance=100,
+                reliability_streak=3,
+                sessions_completed=8,
+                sessions_cancelled=0
+            )
+            alice_user.set_password("alice123")
+
+            bob_user = UserProfile(
+                username="Bob_Host",
+                email="bob@tabletop.local",
+                phone_number="+1555666777",
+                credit_balance=500,
+                reliability_streak=7,
+                sessions_completed=15,
+                sessions_cancelled=0
+            )
+            bob_user.set_password("bob123")
+
+            users = [admin_user, guest_user, alice_user, bob_user]
             
             db.session.add_all(users)
             db.session.commit()
-            print(f"✓ Created {len(users)} users")
+            print(f"✓ Created {len(users)} users with passwords")
 
             # ===== 4. CREATE SAMPLE SESSIONS =====
             print("🎲 Creating Sample Sessions...")

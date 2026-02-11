@@ -82,6 +82,8 @@ class Game(db.Model):
 # ============================================================================
 # USER PROFILE
 # ============================================================================
+from werkzeug.security import generate_password_hash, check_password_hash
+
 class UserProfile(db.Model):
     """Represents a user/player in the system."""
     __tablename__ = 'users'
@@ -89,6 +91,9 @@ class UserProfile(db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False, index=True)
     email = db.Column(db.String(120), unique=True)
     phone_number = db.Column(db.String(20))
+    # Trusted Identity: Password Hash
+    password_hash = db.Column(db.String(256))
+    
     credit_balance = db.Column(db.Integer, default=0)
     reliability_streak = db.Column(db.Integer, default=0)
     sessions_completed = db.Column(db.Integer, default=0)
@@ -102,6 +107,14 @@ class UserProfile(db.Model):
     def __repr__(self):
         return f'<UserProfile {self.username}>'
     
+    def set_password(self, password):
+        """Create hashed password."""
+        self.password_hash = generate_password_hash(password)
+        
+    def check_password(self, password):
+        """Check hashed password."""
+        return check_password_hash(self.password_hash, password)
+
     def can_join_session(self):
         """Check if user meets eligibility criteria to join a session."""
         return self.credit_balance > -50
