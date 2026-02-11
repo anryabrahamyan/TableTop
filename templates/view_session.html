@@ -165,7 +165,15 @@
                                 </button>
                             </form>
                         {% else %}
-                            <p style="color: #7f8c8d; text-align: center; margin: 0;">Cannot join this session</p>
+                            <p style="color: #7f8c8d; text-align: center; margin: 0; font-size: 0.85rem;">
+                                {% if session.status != 'RECRUITING' %}
+                                    Session not recruiting ({{ session.status }})
+                                {% elif session.is_full %}
+                                    Session is full
+                                {% else %}
+                                    Cannot join this session
+                                {% endif %}
+                            </p>
                         {% endif %}
                     {% endif %}
                 {% else %}
