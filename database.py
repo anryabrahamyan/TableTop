@@ -85,7 +85,7 @@ def init_db():
                         print(f"  → Loaded {games_loaded} games...")
                     
                     # Limit to 10 for demo
-                    if games_loaded >= 10:
+                    if games_loaded >= 100:
                         break
                 
                 except Exception as e:

@@ -27,24 +27,25 @@ def load_games_from_json():
 
     with app.app_context():
         try:
-            if Game.query.first() is not None:
-                return
-            
             with open(json_file, 'r', encoding='utf-8') as f:
                 games_data = json.load(f)
             
             if not isinstance(games_data, list):
                 return
 
-            print(f"📖 Loading {len(games_data)} games from {json_file}...")
+            print(f"📖 Checking {len(games_data)} games from {json_file}...")
+            
+            # Get existing game titles
+            existing_titles = {title for (title,) in db.session.query(Game.title).all()}
             
             added_count = 0
             for game_data in games_data:
                 try:
-                    if not game_data.get('title'):
+                    title = str(game_data.get('title', 'Unknown Game')).strip()
+                    
+                    if not title or title in existing_titles:
                         continue
                     
-                    title = str(game_data.get('title', 'Unknown Game')).strip()
                     price = str(game_data.get('price', 'N/A')).strip()
                     gallery = game_data.get('gallery', [])
                     image_url = gallery[0] if gallery and len(gallery) > 0 else None
@@ -60,6 +61,7 @@ def load_games_from_json():
                     )
                     
                     db.session.add(game)
+                    existing_titles.add(title)
                     added_count += 1
                     
                     if added_count % 50 == 0:
@@ -69,13 +71,16 @@ def load_games_from_json():
                     db.session.rollback()
                     continue
             
-            db.session.commit()
-            print(f"✅ Loaded {added_count} games into database")
+            if added_count > 0:
+                db.session.commit()
+                print(f"✅ Added {added_count} new games to database")
+            else:
+                print("✅ Database already up to date")
         
         except (FileNotFoundError, json.JSONDecodeError):
             pass
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"⚠️ Error loading games: {e}")
 
 
 # ============================================================================
@@ -429,6 +434,9 @@ def view_session(session_id):
 def create_session(user):
     """Create a new LFG session."""
     try:
+        venue = VenueConfig.get_or_create()
+        min_date = datetime.now().strftime('%Y-%m-%dT%H:%M')
+        
         if request.method == 'POST':
             game_id = request.form.get('game_id', type=int)
             slots_total = request.form.get('slots_total', type=int, default=4)
@@ -438,18 +446,18 @@ def create_session(user):
             if not game:
                 flash('Invalid game selected', 'error')
                 games = Game.query.all()
-                return render_template('create_session.html', games=games, user=user)
+                return render_template('create_session.html', games=games, user=user, available_capacity=venue.available_capacity(), min_date=min_date)
             
             if slots_total < 2 or slots_total > 10:
                 flash('Players must be between 2 and 10', 'error')
                 games = Game.query.all()
-                return render_template('create_session.html', games=games, user=user)
+                return render_template('create_session.html', games=games, user=user, available_capacity=venue.available_capacity(), min_date=min_date)
             
-            venue = VenueConfig.get_or_create()
+            # Check capacity
             if not venue.can_accommodate(slots_total):
                 flash(f'Venue capacity exceeded. Only {venue.available_capacity()} seats available', 'error')
                 games = Game.query.all()
-                return render_template('create_session.html', games=games, user=user)
+                return render_template('create_session.html', games=games, user=user, available_capacity=venue.available_capacity(), min_date=min_date)
             
             # Parse scheduled start time
             scheduled_start_time = request.form.get('scheduled_start_time')
@@ -484,13 +492,12 @@ def create_session(user):
         if not games:
             games = Game.query.all()
         
-        venue = VenueConfig.get_or_create()
-        
         return render_template(
             'create_session.html',
             games=games,
             user=user,
-            available_capacity=venue.available_capacity()
+            available_capacity=venue.available_capacity(),
+            min_date=min_date
         )
     
     except Exception as e:
