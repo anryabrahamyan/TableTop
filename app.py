@@ -451,13 +451,23 @@ def create_session(user):
                 games = Game.query.all()
                 return render_template('create_session.html', games=games, user=user)
             
+            # Parse scheduled start time
+            scheduled_start_time = request.form.get('scheduled_start_time')
+            start_time_obj = None
+            if scheduled_start_time:
+                try:
+                    start_time_obj = datetime.fromisoformat(scheduled_start_time)
+                except ValueError:
+                    pass  # Invalid format, ignore or handle error
+
             session_obj = SessionLobby(
                 game_id=game_id,
                 slots_total=slots_total,
                 slots_filled=1,
                 status=SessionStatus.RECRUITING.value,
                 host_id=user.id,
-                estimated_duration_minutes=estimated_duration or (game.estimated_playtime_minutes or 60)
+                estimated_duration_minutes=estimated_duration or (game.estimated_playtime_minutes or 60),
+                scheduled_start_time=start_time_obj
             )
             db.session.add(session_obj)
             db.session.flush()

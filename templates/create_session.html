@@ -2,42 +2,71 @@
 
 {% block content %}
 <div class="container" style="max-width: 900px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+    <div
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
         <h2 style="color: #2c3e50; margin: 0;">🎮 Create LFG Session</h2>
         <a href="{{ url_for('dashboard') }}" class="btn btn-primary">← Cancel</a>
     </div>
 
-    <div style="background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); max-width: 600px;">
+    <div
+        style="background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); max-width: 600px;">
         <form method="POST">
             <!-- Game Selection -->
             <div style="margin-bottom: 1.5rem;">
                 <label for="game_id" style="display: block; font-weight: 600; color: #2c3e50; margin-bottom: 0.5rem;">
                     Select a Game *
                 </label>
-                <select id="game_id" name="game_id" required 
-                        style="width: 100%; padding: 0.75rem; border: 1px solid #ecf0f1; border-radius: 8px; font-size: 1rem; box-sizing: border-box;">
+                <select id="game_id" name="game_id" required
+                    style="width: 100%; padding: 0.75rem; border: 1px solid #ecf0f1; border-radius: 8px; font-size: 1rem; box-sizing: border-box;">
                     <option value="">-- Choose a game --</option>
                     {% for game in games %}
-                        <option value="{{ game.id }}">{{ game.title }}</option>
+                    <option value="{{ game.id }}">{{ game.title }}</option>
                     {% endfor %}
                 </select>
             </div>
 
             <!-- Player Slots -->
             <div style="margin-bottom: 2rem;">
-                <label for="slots_total" style="display: block; font-weight: 600; color: #2c3e50; margin-bottom: 0.5rem;">
+                <label for="slots_total"
+                    style="display: block; font-weight: 600; color: #2c3e50; margin-bottom: 0.5rem;">
                     Total Players *
                 </label>
                 <div style="display: flex; align-items: center; gap: 1rem;">
                     <input type="range" id="slots_total" name="slots_total" min="2" max="10" value="4"
-                           style="flex: 1; cursor: pointer;">
-                    <span id="slots_display" style="font-weight: 600; color: #3498db; min-width: 50px; text-align: right;">4</span>
+                        style="flex: 1; cursor: pointer;">
+                    <span id="slots_display"
+                        style="font-weight: 600; color: #3498db; min-width: 50px; text-align: right;">4</span>
                 </div>
-                <p style="color: #7f8c8d; font-size: 0.85rem; margin: 0.5rem 0 0 0;">Minimum 2 players, Maximum 10 players</p>
+                <p style="color: #7f8c8d; font-size: 0.85rem; margin: 0.5rem 0 0 0;">Minimum 2 players, Maximum 10
+                    players</p>
+            </div>
+
+            <!-- Scheduled Start Time -->
+            <div style="margin-bottom: 1.5rem;">
+                <label for="scheduled_start_time"
+                    style="display: block; font-weight: 600; color: #2c3e50; margin-bottom: 0.5rem;">
+                    Scheduled Start Time (Optional)
+                </label>
+                <input type="datetime-local" id="scheduled_start_time" name="scheduled_start_time"
+                    style="width: 100%; padding: 0.75rem; border: 1px solid #ecf0f1; border-radius: 8px; font-size: 1rem; box-sizing: border-box;">
+                <p style="color: #7f8c8d; font-size: 0.85rem; margin: 0.5rem 0 0 0;">Leave blank to start immediately
+                </p>
+            </div>
+
+            <!-- Duration -->
+            <div style="margin-bottom: 2rem;">
+                <label for="estimated_duration_minutes"
+                    style="display: block; font-weight: 600; color: #2c3e50; margin-bottom: 0.5rem;">
+                    Est. Duration (Minutes)
+                </label>
+                <input type="number" id="estimated_duration_minutes" name="estimated_duration_minutes" min="15"
+                    step="15" placeholder="60"
+                    style="width: 100%; padding: 0.75rem; border: 1px solid #ecf0f1; border-radius: 8px; font-size: 1rem; box-sizing: border-box;">
             </div>
 
             <!-- Info Box -->
-            <div style="background: #f0f4ff; padding: 1rem; border-radius: 8px; border-left: 4px solid #3498db; margin-bottom: 2rem;">
+            <div
+                style="background: #f0f4ff; padding: 1rem; border-radius: 8px; border-left: 4px solid #3498db; margin-bottom: 2rem;">
                 <p style="color: #2c3e50; margin: 0; font-weight: 500;">ℹ️ Session Info</p>
                 <ul style="color: #7f8c8d; font-size: 0.9rem; margin: 0.5rem 0 0 0; padding-left: 1.5rem;">
                     <li>You will be the host</li>
@@ -48,25 +77,27 @@
             </div>
 
             <!-- Submit Button -->
-            <button type="submit" class="btn btn-success" style="width: 100%; padding: 1rem; font-size: 1rem; font-weight: 600;">
+            <button type="submit" class="btn btn-success"
+                style="width: 100%; padding: 1rem; font-size: 1rem; font-weight: 600;">
                 Create Session
             </button>
         </form>
     </div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div style="margin-top: 1rem; padding: 1rem; border-radius: 8px; background: {% if category == 'error' %}#ffe0e0{% else %}#e0ffe0{% endif %}; color: {% if category == 'error' %}#c33{% else %}#33c33{% endif %};">
-                    {{ message }}
-                </div>
-            {% endfor %}
-        {% endif %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div
+        style="margin-top: 1rem; padding: 1rem; border-radius: 8px; background: {% if category == 'error' %}#ffe0e0{% else %}#e0ffe0{% endif %}; color: {% if category == 'error' %}#c33{% else %}#33c33{% endif %};">
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
     {% endwith %}
 </div>
 
 <script>
-    document.getElementById('slots_total').addEventListener('input', function() {
+    document.getElementById('slots_total').addEventListener('input', function () {
         document.getElementById('slots_display').textContent = this.value;
     });
 </script>
